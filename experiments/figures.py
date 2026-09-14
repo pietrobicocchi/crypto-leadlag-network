@@ -18,9 +18,7 @@ OUTPUTS = ROOT / "outputs"
 PAPER_FIGURES = ROOT / "paper" / "figures"
 
 # paper figure name  ->  path under outputs/
-FIGURES = {
-    "fig1_alpha_sweep.pdf": "exp001/alpha_sweep.pdf",
-}
+FIGURES: dict[str, str] = {}
 
 
 def main() -> None:
