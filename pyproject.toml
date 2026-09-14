@@ -1,7 +1,7 @@
 [project]
 name = "leadlag"
 version = "0.1.0"
-description = "One sentence: the question this project answers."
+description = "Which crypto instruments lead, which follow, at the sub-second scale — and whether that survives trading costs."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
