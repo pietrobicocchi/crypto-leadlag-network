@@ -1,0 +1,11 @@
+# Parameters only. Anything that branches or computes belongs in Python.
+seed: 0
+
+data:
+  n_samples: 400
+  n_features: 12
+  noise: 0.5
+  train_frac: 0.7
+
+method:
+  alphas: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

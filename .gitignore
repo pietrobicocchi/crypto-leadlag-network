@@ -1,0 +1,20 @@
+# Generated results: keep the directory, never its contents.
+outputs/*
+!outputs/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# OS Junk
+.DS_Store
+
+# Secrets
+.env
+CLAUDE.local.md
+
