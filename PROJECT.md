@@ -63,6 +63,14 @@ than crash on:
 - Some periods were never published. A missing file is normal and must be
   **reported in the manifest, not raised**.
 
+**Decision: simultaneous trades are collapsed at construction.** `TradeSeries`
+holds one row per distinct timestamp — last price wins, quantities summed — so
+`ts_ns` is strictly increasing. This is a data decision, not a detail. Hayashi–
+Yoshida works on intervals between consecutive observations; two trades sharing
+a timestamp would form a zero-length interval that overlaps nothing, silently
+discarding the price change across it. Collapsing solves this once, in one
+place, rather than requiring every estimator to handle degenerate intervals.
+
 ## Baselines
 
 | Baseline | Why it is the right comparison | Status |
@@ -85,10 +93,25 @@ than crash on:
 
 ## Open threads
 
-- Implement `TradeSeries` (`leadlag.types`) — the vocabulary every other module
-  speaks. Prerequisite for everything.
-- Then the synthetic generator and Gate 1. Deliberately before touching real
-  data: the estimator must be proven against a known answer first.
+**Decision: the estimator is built and proven before any real data is ingested**,
+reversing the original v0.1/v0.2 milestone order. Ingestion is high-effort and
+low-risk, and its failures are loud; the estimator is low-effort, high-risk, and
+its failure mode is a plausible-looking wrong number. Only synthetic data has a
+ground truth to check an estimator against, so real data cannot do this job.
+
+In order:
+
+1. `TradeSeries` (`leadlag.types`) — the vocabulary every other module speaks.
+   Validated in `__post_init__`, so an invalid series cannot exist.
+2. `leadlag.synthetic` — B a known delayed copy of A, independent Poisson
+   arrivals, configurable trade-rate ratio. The measuring stick.
+3. `leadlag.estimators` — the gridded baseline first, then Hayashi–Yoshida,
+   then the lag scan. Baseline first because watching it fail on a known answer
+   is what proves the generator reproduces the pathology.
+4. exp001 and CI — Gate 1, green.
+
+Then ingestion, and the questions that follow it:
+
 - Choose the lag grid: resolution and range. Too coarse hides the effect, too
   fine multiplies the hypothesis count that exp002 must correct for.
 - Decide the universe and window length (affects the ~600-test count).
