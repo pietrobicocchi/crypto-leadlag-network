@@ -92,6 +92,9 @@ place, rather than requiring every estimator to handle degenerate intervals.
 - Nothing scientific yet. `TradeSeries` exists and its contract is enforced by
   20 tests; simultaneous trades are rejected at construction rather than
   silently forming zero-length intervals.
+- The synthetic generator produces a known lag with the correct sign: a scan of
+  candidate shifts bottoms out at the injected lag, 18.7x below the wrong-sign
+  shift. CI runs that check on every push.
 
 ## Open threads
 
@@ -105,8 +108,8 @@ In order:
 
 1. ~~`TradeSeries` (`leadlag.types`)~~ — **done.** Validated in `__post_init__`,
    so an invalid series cannot exist; arrays frozen against in-place writes.
-2. `leadlag.synthetic` — B a known delayed copy of A, independent Poisson
-   arrivals, configurable trade-rate ratio. The measuring stick.
+2. ~~`leadlag.synthetic`~~ — **done.** B a known delayed copy of A, independent
+   Poisson arrivals, configurable trade-rate ratio. The measuring stick.
 3. `leadlag.estimators` — the gridded baseline first, then Hayashi–Yoshida,
    then the lag scan. Baseline first because watching it fail on a known answer
    is what proves the generator reproduces the pathology.
