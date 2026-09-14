@@ -12,6 +12,7 @@ import dataclasses
 
 import numpy as np
 import pytest
+
 from leadlag.types import TradeSeries
 
 
