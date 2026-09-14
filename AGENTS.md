@@ -20,8 +20,8 @@ configs/            parameters only, never logic
 outputs/            generated results, one directory per experiment (gitignored)
 tests/              tests for scientifically dangerous code
 notebooks/          exploration only
-paper/figures/      the figures that appear in the paper
-paper/outline.md    the scientific narrative
+report/figures/      the figures that appear in the report
+report/methodology.md    the scientific narrative
 ```
 
 ## The invariant
@@ -69,11 +69,11 @@ Functions should name concepts that can be named scientifically.
 - Colours and display names come from `METHOD_COLORS` and `METHOD_LABELS`, and
   must be identical in every figure.
 - Vector output (PDF) for plots.
-- Axes carry units where applicable. Sentence case. No titles on paper figures
+- Axes carry units where applicable. Sentence case. No titles on report figures
   unless scientifically necessary. No redundant legends.
 - Never truncate an axis in a way that distorts a comparison.
 - An uncertainty band must state what quantity it represents.
-- A figure becomes a paper figure only by being added to `FIGURES` in
+- A figure becomes a report figure only by being added to `FIGURES` in
   `experiments/figures.py`, then `make figures`.
 
 ## Tests

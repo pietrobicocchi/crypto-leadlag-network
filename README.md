@@ -12,7 +12,7 @@ make setup     # uv sync --extra dev
 
 ```bash
 make exp EXP=exp001     # -> outputs/exp001/
-make figures            # -> paper/figures/
+make figures            # -> report/figures/
 ```
 
 ## Layout
@@ -25,8 +25,8 @@ make figures            # -> paper/figures/
 | `outputs/` | generated results, one directory per experiment (gitignored) |
 | `tests/` | tests for code whose silent failure would invalidate a conclusion |
 | `notebooks/` | exploration only, never a dependency |
-| `paper/figures/` | the figures that appear in the paper |
-| `paper/outline.md` | the scientific narrative |
+| `report/figures/` | the figures that appear in the report |
+| `report/methodology.md` | the scientific narrative |
 
 Three layers, one direction: `src/` is what we built, `experiments/` are the
 questions we asked of it, `outputs/` is what happened. Experiments import `src/`;
@@ -46,9 +46,9 @@ outputs/exp001/
 └── alpha_sweep.pdf
 ```
 
-## Paper figures
+## Report figures
 
-`outputs/` is disposable and messy; `paper/figures/` is curated and committed. A
+`outputs/` is disposable and messy; `report/figures/` is curated and committed. A
 figure crosses that line by being listed in `FIGURES` in `experiments/figures.py`
 and nowhere else — that dict is the record of which experiment produced which
 figure.
@@ -61,7 +61,7 @@ make test               # pytest
 make lint               # ruff check + format --check
 make fmt                # ruff format + --fix
 make exp EXP=exp001     # run an experiment
-make figures            # promote outputs into paper/figures/
+make figures            # promote outputs into report/figures/
 make clean              # remove caches
 ```
 

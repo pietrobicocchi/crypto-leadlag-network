@@ -1,6 +1,6 @@
-# Paper outline
+# Methodology
 
-The scientific narrative. Figures referenced here live in `paper/figures/` and
+The scientific narrative. Figures referenced here live in `report/figures/` and
 are promoted from `outputs/` by `make figures`.
 
 ## Thesis
@@ -24,5 +24,5 @@ implementations live in `src/`; point at them rather than restating them.>
 
 ## Cut
 
-<Findings that are true but not part of this paper. Keep them here rather than
+<Findings that are true but not part of this report. Keep them here rather than
 deleting them.>
