@@ -89,7 +89,9 @@ place, rather than requiring every estimator to handle degenerate intervals.
 
 ## What we have learned
 
-- Nothing yet. Repository skeleton only.
+- Nothing scientific yet. `TradeSeries` exists and its contract is enforced by
+  20 tests; simultaneous trades are rejected at construction rather than
+  silently forming zero-length intervals.
 
 ## Open threads
 
@@ -101,8 +103,8 @@ ground truth to check an estimator against, so real data cannot do this job.
 
 In order:
 
-1. `TradeSeries` (`leadlag.types`) — the vocabulary every other module speaks.
-   Validated in `__post_init__`, so an invalid series cannot exist.
+1. ~~`TradeSeries` (`leadlag.types`)~~ — **done.** Validated in `__post_init__`,
+   so an invalid series cannot exist; arrays frozen against in-place writes.
 2. `leadlag.synthetic` — B a known delayed copy of A, independent Poisson
    arrivals, configurable trade-rate ratio. The measuring stick.
 3. `leadlag.estimators` — the gridded baseline first, then Hayashi–Yoshida,
