@@ -1,5 +1,7 @@
 # crypto-leadlag-network
 
+[![CI](https://github.com/pietrobicocchi/crypto-leadlag-network/actions/workflows/ci.yml/badge.svg)](https://github.com/pietrobicocchi/crypto-leadlag-network/actions/workflows/ci.yml)
+
 Measuring which crypto instruments move first and which follow, at the
 sub-second scale — and testing honestly whether that structure is worth
 anything after trading costs.

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The job reads the repository and needs nothing else.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # pyproject declares requires-python = ">=3.11". Testing the oldest and
+      # the newest supported version is what makes that claim true.
+      matrix:
+        python-version: ["3.11", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # --frozen fails if uv.lock disagrees with pyproject.toml, rather than
+      # silently resolving a different environment from the local one.
+      - name: Install
+        run: uv sync --extra dev --frozen --python ${{ matrix.python-version }}
+
+      # The same commands you run locally. If CI had its own copy of them they
+      # would drift, and a green check would stop meaning anything.
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: make test
