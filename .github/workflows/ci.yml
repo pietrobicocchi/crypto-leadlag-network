@@ -22,7 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10
+      # setup-uv publishes no moving major tag, so this is pinned exactly and
+      # must be bumped by hand. checkout@v7 does move, and picks up patches.
+      - uses: astral-sh/setup-uv@v10.1.0
         with:
           enable-cache: true
 
