@@ -121,6 +121,19 @@ def test_fields_cannot_be_rebound():
         series.symbol = "ETHUSDT"
 
 
+def test_equality_is_identity():
+    """Pins `eq=False`.
+
+    A generated `__eq__` would compare fields as a tuple and call `bool()` on an
+    array comparison: it raises for a multi-trade series and returns a numpy
+    array for a single-trade one. Identity is the honest behaviour until an
+    element-wise comparison is actually needed.
+    """
+    series = make_series()
+    assert series == series
+    assert series != make_series()
+
+
 def test_arrays_cannot_be_mutated_in_place():
     """frozen=True alone would not catch this: it blocks rebinding, not writes."""
     series = make_series()
