@@ -1,8 +1,9 @@
 """The project's visual language.
 
 Every figure goes through this module. Change a default here and every figure
-changes with it. Method colours and labels are semantic: "our method" is the
-same colour and carries the same name in every figure of the paper.
+changes with it. Method colours and labels are semantic: the estimator and the
+baseline it replaces keep the same colour and the same name in every figure of
+the report.
 """
 
 from __future__ import annotations
@@ -16,13 +17,13 @@ import matplotlib.pyplot as plt
 # One entry per method. Never hard-code a colour or a display name elsewhere.
 
 METHOD_LABELS = {
-    "ours": "Our method",
-    "baseline": "Baseline",
+    "hayashi_yoshida": "Hayashi–Yoshida",
+    "gridded": "Gridded baseline",
 }
 
 METHOD_COLORS = {
-    "ours": "#0B6E4F",
-    "baseline": "#8A8A8A",
+    "hayashi_yoshida": "#0B6E4F",
+    "gridded": "#8A8A8A",  # grey: the method that fails, in every figure it fails in
 }
 
 # --- page geometry, in inches ------------------------------------------------
@@ -71,7 +72,7 @@ def save_figure(fig, path: str | Path) -> Path:
     """Write `fig` to `path` (PDF preferred) and close it."""
     path = Path(path)
     if path.suffix.lower() not in {".pdf", ".svg"}:
-        raise ValueError(f"paper figures must be vector (.pdf/.svg), got {path.suffix!r}")
+        raise ValueError(f"report figures must be vector (.pdf/.svg), got {path.suffix!r}")
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path)
     plt.close(fig)
