@@ -5,110 +5,146 @@ keep it under ~150 lines, and keep it true.
 
 ## What this is
 
-Research code that has to become publication-quality code.
+Measuring lead–lag structure between crypto instruments at the sub-second scale,
+then testing honestly whether it survives trading costs. Research code that has
+to become publication-quality code.
 
-Optimise, in this order: **correctness → readability → reproducibility → simplicity.**
+Optimise, in this order: **correctness → readability → reproducibility →
+simplicity.** Do not introduce abstractions for hypothetical requirements.
 
-Do not introduce abstractions for hypothetical future requirements.
+## How to work with me
+
+I am learning to code. **Optimise for my understanding, not for speed.**
+
+- Explain the plan in plain English before writing code. Wait for my go.
+- One file per change.
+- No function body until the signature, docstring and a test exist.
+- When I ask how to do something, give me 2–3 options with tradeoffs rather
+  than choosing for me.
+- Explain any Python feature a beginner would not know.
+- Never add a dependency without justifying it.
 
 ## Structure
 
 ```
-src/leadlag/        reusable science — what we built and discovered
-experiments/        entrypoints — the questions we asked of it
-configs/            parameters only, never logic
-outputs/            generated results, one directory per experiment (gitignored)
-tests/              tests for scientifically dangerous code
-notebooks/          exploration only
-report/figures/      the figures that appear in the report
-report/methodology.md    the scientific narrative
+src/leadlag/      reusable science, one module per pipeline stage
+experiments/      entrypoints — the questions we asked of it
+configs/          parameters only, never logic
+outputs/          results, one directory per experiment (gitignored)
+tests/            tests for scientifically dangerous code
+notebooks/        exploration only
+report/           figures/ and methodology.md
 ```
 
-## The invariant
+One-way over immutable artifacts. A module appears when implemented, not before:
+
+    ingest -> normalize -> estimators -> study -> report
+
+## The invariants
 
 **`experiments/` may import `src/`. `src/` must never import `experiments/`.**
 
-- Reusable logic belongs in `src/`; experiment-specific logic stays in that experiment's file.
-- A notebook must never hold the only implementation of anything.
-- No reproduction path may depend on running notebook cells in a particular order.
+**Nothing in `estimators` may read a file or make a network request.** Pure
+maths: numpy arrays in, numbers out. It must be testable with no I/O. If a test
+for an estimator needs a fixture file, the design is wrong.
 
-## Before creating a file
+**Only `normalize` knows that Binance exists.** Venue-specific parsing, column
+names, timestamp units and file quirks stop there. Adding a second venue should
+cost one file, not a rewrite.
 
-Ask whether it belongs in a file that already exists. Prefer editing.
+**Notebooks import the library; they never define logic.** No reproduction path
+may depend on running notebook cells in a particular order.
 
-Do not create new markdown files, helper modules, `utils.py`, `common.py`, or
-abstraction layers unless there is a clear structural benefit. **Never create
-documentation files.** Update `README.md`, `AGENTS.md` or `PROJECT.md` instead:
-this repository documents what is true now, and git remembers what happened.
+## The central data structure
 
-## Code preferences
+Everything downstream speaks `TradeSeries` (`leadlag.types`):
 
-Prefer modifying a file over creating one.
-Prefer a function over a class.
-Prefer a class over a framework.
-Prefer duplication over a premature abstraction.
-Delete obsolete code rather than preserve compatibility, unless compatibility is
-explicitly required.
+```python
+@dataclass(frozen=True)
+class TradeSeries:
+    symbol: str
+    ts_ns: np.ndarray   # int64 nanoseconds, strictly non-decreasing
+    price: np.ndarray   # float64
+    qty:   np.ndarray   # float64
+```
 
-Three duplicated lines are usually cheaper than an abstraction in research code.
-Functions should name concepts that can be named scientifically.
+Integer nanoseconds, never float seconds: `float64` loses precision below a
+microsecond and this project measures milliseconds. Frozen: mutated inputs cause
+bugs that cannot be reproduced. Parallel arrays, not objects: ten million Python
+objects will not fit in memory. Timestamp units are **detected, never assumed** —
+the Binance archive changed from milliseconds to microseconds mid-2025.
+
+## Scientific honesty
+
+The expected conclusion is that the effect is real but uneconomic. **An honest
+negative result is the goal, not a problem to engineer around.** Never relax a
+cost, latency or fee assumption to improve a result. If a result looks good,
+suspect a lookahead bug first. Report missing data, never silently fill it — a
+gap in the archive is normal and belongs in the manifest.
 
 ## Experiments
 
 - One experiment answers one identifiable question, stated in its docstring.
-- `expNNN_short_name.py` writes only to `outputs/expNNN/`.
-- Call `start_run()` from `src/leadlag/run.py` first: it records the config,
-  git commit, dirty flag, seed and command line that produced the results.
-- Never edit a generated output by hand.
-- Run with `make exp EXP=exp007`.
+- `expNNN_short_name.py` writes only to `outputs/expNNN/`. Run it with
+  `make exp EXP=exp007`. Never edit a generated output by hand.
+- Call `start_run()` from `src/leadlag/run.py` first: it records the config, git
+  commit, dirty flag, seed and command line that produced the results.
 
 ## Figures
 
-- Every figure goes through `src/leadlag/plotting.py`. Never set fonts,
-  sizes or colours ad hoc inside an experiment.
-- Colours and display names come from `METHOD_COLORS` and `METHOD_LABELS`, and
-  must be identical in every figure.
-- Vector output (PDF) for plots.
-- Axes carry units where applicable. Sentence case. No titles on report figures
-  unless scientifically necessary. No redundant legends.
-- Never truncate an axis in a way that distorts a comparison.
-- An uncertainty band must state what quantity it represents.
-- A figure becomes a report figure only by being added to `FIGURES` in
-  `experiments/figures.py`, then `make figures`.
+- Every figure goes through `src/leadlag/plotting.py`. Never set fonts, sizes or
+  colours ad hoc. Colours and names come from `METHOD_COLORS` / `METHOD_LABELS`
+  and are identical everywhere: the gridded baseline is the same grey line in
+  every figure it fails in.
+- Vector (PDF). Axes carry units. Sentence case. No redundant legends. Never
+  truncate an axis in a way that distorts a comparison. An uncertainty band must
+  state what quantity it represents.
+- A figure becomes a report figure by being added to `FIGURES` in
+  `experiments/figures.py`, then `make figures`. Nowhere else.
 
 ## Tests
 
 Risk-weighted, not coverage-weighted. Test where a silent error would invalidate
-a scientific conclusion: metric implementations, mathematical identities and
-invariants, array shapes, preprocessing, data splitting, determinism,
-serialisation, numerically delicate routines.
+a conclusion: estimators against known analytic answers, mathematical identities
+and invariants, array shapes and dtypes, timestamp-unit handling, determinism.
 
-Do not test experiment orchestration, plotting boilerplate, trivial wrappers or
-CLI arguments. Never add a test to raise coverage.
+The test that matters most: on synthetic data where B is a known delayed copy of
+A with independent Poisson arrivals, the estimator recovers the known lag — and
+still does when A trades 10x more often than B, where the gridded baseline
+visibly fails. That runs in CI.
 
-## Dependencies
+Do not test orchestration, plotting boilerplate or trivial wrappers. Never add a
+test to raise coverage.
 
-Prefer the standard library and what is already installed. Ask before adding a
-substantial dependency. All configuration lives in `pyproject.toml`.
+## Before creating a file
+
+Ask whether it belongs in a file that already exists. Prefer editing. Do not
+create `utils.py`, `common.py` or abstraction layers. **Never create
+documentation files** — update `README.md`, `AGENTS.md` or `PROJECT.md`: this
+repository documents what is true now, and git remembers what happened.
+
+Prefer a function over a class; a class over a framework; duplication over a
+premature abstraction. Delete obsolete code rather than preserve compatibility.
+Functions should name concepts that can be named scientifically.
 
 ## Two modes
 
 Say which mode you are in when it is ambiguous.
 
-**EXPLORE** — the question is open. Work in `experiments/`. Duplication, debug
-prints and throwaway code are fine. Do not refactor `src/`.
+**EXPLORE** — the question is open. Work in `experiments/`; duplication and
+throwaway code are fine. Do not refactor `src/`.
 
-**CONSOLIDATE** — something worked. Move the reusable implementation into `src/`,
-delete the exploratory copy, point the experiment at the canonical version, and
-add a test for the invariant that matters.
+**CONSOLIDATE** — something worked. Move it into `src/`, delete the exploratory
+copy, point the experiment at the canonical version, add a test for the
+invariant that matters.
 
 ## Decide freely / ask first
 
-Without asking: implement functions, refactor locally, write targeted tests, run
-experiments, fix lint, produce plots, inspect outputs, simplify code.
+Without asking: implement an agreed function, refactor locally, write targeted
+tests, run experiments, fix lint, produce plots, inspect outputs, simplify code.
 
-Stop and ask before: changing the scientific question; changing a metric
-definition; changing dataset splits or statistical methodology; adding a major
+Stop and ask before: changing the scientific question; changing an estimator or
+metric definition; changing the lag grid, universe or window length; adding a
 dependency; introducing an architectural layer; changing a public interface in
 `src/`; deleting experiment results; making an assumption that affects a
 conclusion.
@@ -116,7 +152,7 @@ conclusion.
 ## Finishing a substantial change
 
 Run `make test` and `make lint`, and execute any experiment entrypoint you
-changed. Then report, briefly:
+changed. Then report briefly:
 
 **Changed** — one line per file: what and why
 **Architecture** — why the new code lives where it lives
