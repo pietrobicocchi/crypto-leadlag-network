@@ -14,9 +14,11 @@ fee levels.
 ## Argument
 
 1. The standard gridded approach manufactures a lag from trade-rate asymmetry
-   alone, so any leadership it reports is an artefact. → evidence: (exp001)
+   alone, so any leadership it reports is an artefact. → evidence:
+   `fig1_synthetic_recovery.pdf` (exp001)
 2. The Hayashi–Yoshida estimator recovers a known lag on asynchronous data with
-   no clock and no interpolation. → evidence: (exp001)
+   no clock and no interpolation. → evidence:
+   `fig1_synthetic_recovery.pdf` (exp001)
 3. Applied to the universe, it finds a lag structure that survives bootstrap
    confidence intervals and Benjamini–Hochberg correction. → evidence: (exp002)
 4. That structure is stable across rolling windows, and leadership rank tracks

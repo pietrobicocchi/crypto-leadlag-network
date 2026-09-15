@@ -83,7 +83,7 @@ place, rather than requiring every estimator to handle degenerate intervals.
 
 | ID | Question | Status | Result |
 | --- | --- | --- | --- |
-| exp001 | Does Hayashi–Yoshida recover a known lag on asynchronous synthetic data where the gridded baseline fails? | not started | — |
+| exp001 | Does Hayashi–Yoshida recover a known lag on asynchronous synthetic data where the gridded baseline fails? | **done** | `outputs/exp001/`, `report/figures/fig1_synthetic_recovery.pdf` |
 | exp002 | What is the pairwise lag matrix across the universe, with bootstrap CIs and Benjamini–Hochberg correction over ~600 tests? | not started | — |
 | exp003 | Is the directed lead–lag network stable across rolling windows, and does leadership rank track liquidity? | not started | — |
 | exp004 | What is net Sharpe as a function of round-trip latency and fee level? | not started | — |
@@ -107,6 +107,13 @@ place, rather than requiring every estimator to handle degenerate intervals.
   identical data (true lag zero, 10:1 imbalance) it reports a lead-lag ratio of
   0.96–1.03 against the baseline's 197–387, and it recovers injected lags of
   100 ms and 250 ms exactly. Gate 1 passes.
+- **The fabricated finding is not monotone in trade-rate imbalance.** Median
+  gridded lead-lag ratio over ten seeds: 1.2 at 1:1, 6.4 at 2:1, 68 at 5:1, 106
+  at 10:1, then *down* to 70 at 20:1 and 46 at 50:1. Hayashi–Yoshida stays at
+  0.84–0.98 throughout. The decline past 10:1 was not predicted; the plausible
+  cause is that B becomes so sparse that every correlation weakens and the
+  ratio compresses, but that is a hypothesis, not a measurement. It does not
+  affect Gate 1.
 - **The HY ratio is not bounded by 1** (observed 1.016). A's return over one
   interval is counted against every overlapping B interval, so the numerator
   carries a multiplicity the realised variances do not. Confirmed against the
@@ -129,8 +136,11 @@ In order:
    Poisson arrivals, configurable trade-rate ratio. The measuring stick.
 3. ~~`leadlag.estimators`~~ — **done.** Gridded baseline and Hayashi–Yoshida,
    verified against each other and against an O(n·m) oracle.
-4. exp001 — the figure. CI is green and Gate 1 passes in the test suite; what
-   remains is the experiment entrypoint, provenance and the plot.
+4. ~~exp001~~ — **done.** Gate 1 is green in CI and reproduced as an experiment
+   with provenance and a figure.
+
+Next: ingestion (`leadlag.ingest`, `leadlag.normalize`) against the Binance
+archive, now that the estimator is proven.
 
 Then ingestion, and the questions that follow it:
 
@@ -142,8 +152,8 @@ Then ingestion, and the questions that follow it:
 
 | Claim in the report | Figure / table | Experiment |
 | --- | --- | --- |
-| The gridded estimator fabricates lag from trade-rate asymmetry alone | — | exp001 |
-| Hayashi–Yoshida recovers a known lag without a clock | — | exp001 |
+| The gridded estimator fabricates lead-lag from trade-rate asymmetry alone | `fig1_synthetic_recovery.pdf` (a, b) | exp001 |
+| Hayashi–Yoshida recovers a known lag without a clock | `fig1_synthetic_recovery.pdf` (b) | exp001 |
 | Lead–lag structure is real and survives multiple-testing correction | — | exp002 |
 | Leadership rank is stable and tracks liquidity | — | exp003 |
 | The effect is uneconomic at retail latency and fees | — | exp004 |
