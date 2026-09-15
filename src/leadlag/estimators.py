@@ -46,11 +46,7 @@ def gridded_correlation(
     _check_series(b, "b")
     if bucket_ns <= 0:
         raise ValueError(f"bucket_ns must be positive, got {bucket_ns}")
-    if not isinstance(lag_grid_ns, np.ndarray) or lag_grid_ns.dtype != np.int64:
-        dtype = getattr(lag_grid_ns, "dtype", type(lag_grid_ns).__name__)
-        raise TypeError(f"lag_grid_ns must be an int64 numpy array, got {dtype}")
-    if lag_grid_ns.ndim != 1:
-        raise ValueError(f"lag_grid_ns must be 1-D, got {lag_grid_ns.ndim}-D")
+    _check_lag_grid(lag_grid_ns)
 
     # One bucket grid, fixed across every candidate lag. If the window moved
     # with the lag, each correlation would be computed over a different number
@@ -73,6 +69,68 @@ def gridded_correlation(
         # this much, the two now describe the same moments.
         returns_b = _bucketed_log_returns(b.ts_ns - lag, b.price, edges)
         correlation[i] = _pearson(returns_a, returns_b)
+    return correlation
+
+
+def hayashi_yoshida_correlation(
+    a: TradeSeries,
+    b: TradeSeries,
+    *,
+    lag_grid_ns: np.ndarray,
+) -> np.ndarray:
+    """Correlation at each candidate lag, imposing no clock at all.
+
+    Hayashi-Yoshida (2005) uses each asset's own trade times. A's return over
+    `(t[i], t[i+1]]` multiplies B's return over `(s[j], s[j+1]]` exactly when
+    those half-open intervals intersect - `t[i] < s[j+1]` and `s[j] < t[i+1]` -
+    and the estimator is the sum of those products, normalised by each asset's
+    realised variance.
+
+    There is no bucket size, and that absence is the method. Nothing is
+    interpolated and no return is invented for an asset that did not trade, so
+    there is no mechanism for the Epps effect to act through and no way for a
+    trade-rate imbalance alone to manufacture a lead-lag finding.
+
+    Realised variances do not depend on the lag: shifting all of B's timestamps
+    moves which intervals overlap, never B's own returns. They are computed
+    once.
+
+    **The returned ratio is not bounded by 1.** A's return over one interval is
+    counted against every B interval overlapping it, so the numerator carries a
+    multiplicity the denominator's realised variances do not, and under a
+    strong trade-rate imbalance the ratio passes 1. That is the estimator
+    behaving as defined, not an error - but anything downstream that assumes a
+    correlation coefficient, a Fisher z-transform above all, has to account for
+    it.
+    """
+    _check_series(a, "a")
+    _check_series(b, "b")
+    _check_lag_grid(lag_grid_ns)
+
+    log_returns_a = np.diff(np.log(a.price))
+    log_returns_b = np.diff(np.log(b.price))
+    normaliser = np.sqrt(np.sum(log_returns_a**2) * np.sum(log_returns_b**2))
+    if normaliser == 0:
+        raise ValueError("a series never moves, so correlation is undefined")
+
+    # Prefix sums let the inner sum over B become one subtraction.
+    cumulative_b = np.concatenate([[0.0], np.cumsum(log_returns_b)])
+
+    correlation = np.empty(lag_grid_ns.size, dtype=np.float64)
+    for k, lag in enumerate(lag_grid_ns):
+        shifted_b = b.ts_ns - lag
+        # For A's interval i, the overlapping B intervals are contiguous because
+        # both clocks are sorted. Its bounds are two binary searches:
+        #   lo: the first j with s[j+1] > t[i]      (B's interval ends after A's starts)
+        #   hi: one past the last j with s[j] < t[i+1]  (B's interval starts before A's ends)
+        lo = np.searchsorted(shifted_b, a.ts_ns[:-1], side="right") - 1
+        hi = np.searchsorted(shifted_b, a.ts_ns[1:], side="left")
+        n_b = log_returns_b.size
+        np.clip(lo, 0, n_b, out=lo)
+        np.clip(hi, 0, n_b, out=hi)
+        np.maximum(hi, lo, out=hi)  # an empty range must stay empty, not go negative
+        covariance = float(np.sum(log_returns_a * (cumulative_b[hi] - cumulative_b[lo])))
+        correlation[k] = covariance / normaliser
     return correlation
 
 
@@ -112,6 +170,14 @@ def lead_lag_ratio(lag_grid_ns: np.ndarray, correlation: np.ndarray) -> float:
     if leading == 0:
         raise ValueError("no negative lags in the grid, so the ratio is undefined")
     return float(trailing / leading)
+
+
+def _check_lag_grid(lag_grid_ns: np.ndarray) -> None:
+    if not isinstance(lag_grid_ns, np.ndarray) or lag_grid_ns.dtype != np.int64:
+        dtype = getattr(lag_grid_ns, "dtype", type(lag_grid_ns).__name__)
+        raise TypeError(f"lag_grid_ns must be an int64 numpy array, got {dtype}")
+    if lag_grid_ns.ndim != 1:
+        raise ValueError(f"lag_grid_ns must be 1-D, got {lag_grid_ns.ndim}-D")
 
 
 def _check_series(series: TradeSeries, name: str) -> None:

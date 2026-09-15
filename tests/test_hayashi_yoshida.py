@@ -17,7 +17,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from leadlag.estimators import hayashi_yoshida_correlation
+from leadlag.estimators import (
+    gridded_correlation,
+    hayashi_yoshida_correlation,
+    lead_lag_ratio,
+    peak_lag,
+)
 from leadlag.synthetic import delayed_pair
 from leadlag.types import TradeSeries
 
@@ -102,12 +107,57 @@ def test_correlation_with_itself_is_one():
     assert corr[0] == pytest.approx(1.0, abs=1e-12)
 
 
-def test_correlations_are_bounded():
+def test_the_ratio_can_exceed_one_in_finite_samples():
+    """Not a bug, and not a correlation coefficient.
+
+    The numerator counts A's return over one interval against every B interval
+    that overlaps it, so it accumulates a multiplicity the realised variances in
+    the denominator do not account for. Under a 10:1 rate imbalance that
+    multiplicity is large and the ratio passes 1. The O(n*m) oracle produces
+    the same value, so this is the definition behaving as defined.
+
+    It matters downstream: a Fisher z-transform of a value above 1 is NaN, so
+    the v0.3 bootstrap cannot assume this is bounded.
+    """
     a, b = market_pair(0)
     corr = hayashi_yoshida_correlation(
         a, b, lag_grid_ns=np.arange(-6, 7, dtype=np.int64) * (50 * MS)
     )
-    assert np.all(corr >= -1.0) and np.all(corr <= 1.0)
+    assert corr.max() > 1.0
+    assert np.all(np.abs(corr) < 2.0)  # still catches a wildly broken estimator
+
+
+def test_gate_one_hy_refuses_the_lag_the_baseline_invents():
+    """The project's first gate, on identical data.
+
+    True lag is exactly zero; A simply trades ten times more often than B. The
+    gridded baseline reports a lead-lag ratio in the hundreds - a confident
+    finding of something that is not there. Hayashi-Yoshida reports about 1.
+
+    Until this passes, no result on real data means anything.
+    """
+    bucket = 50 * MS
+    lags = np.arange(-10, 11, dtype=np.int64) * bucket
+    a, b = market_pair(0)
+
+    gridded = gridded_correlation(a, b, bucket_ns=bucket, lag_grid_ns=lags)
+    hy = hayashi_yoshida_correlation(a, b, lag_grid_ns=lags)
+
+    assert lead_lag_ratio(lags, gridded) > 50.0
+    assert 0.3 < lead_lag_ratio(lags, hy) < 3.0
+
+
+@pytest.mark.parametrize("true_lag_ms", [100, 250])
+def test_recovers_a_known_lag_under_rate_asymmetry(true_lag_ms):
+    """The other half of the gate: refusing a false lag is worthless if it
+    cannot find a real one. A still trades ten times more often than B."""
+    bucket = 50 * MS
+    lags = np.arange(-10, 11, dtype=np.int64) * bucket
+    a, b = market_pair(true_lag_ms * MS)
+
+    hy = hayashi_yoshida_correlation(a, b, lag_grid_ns=lags)
+    assert peak_lag(lags, hy) == true_lag_ms * MS
+    assert lead_lag_ratio(lags, hy) > 50.0
 
 
 def test_float_lag_grid_is_rejected():
