@@ -31,7 +31,7 @@ indicate a bug in the simulator than an edge.
 
 Two gates, in order. The first decides whether anything downstream is believable.
 
-**Gate 1 — the estimator is correct.** On synthetic data where B is a known
+**Gate 1 — the estimator is correct. PASSING.** On synthetic data where B is a known
 delayed copy of A, with independent Poisson arrivals and A trading 10x more
 often than B, Hayashi–Yoshida must recover the true lag to within one grid step,
 while the naive gridded baseline visibly fails. This runs in CI. Until it
@@ -77,6 +77,7 @@ place, rather than requiring every estimator to handle degenerate intervals.
 | --- | --- | --- |
 | Naive gridded cross-correlation | It is what you get by chopping time into fixed buckets and forward-filling. It is the standard wrong answer: it manufactures a lead-lag finding from trade-rate asymmetry alone, so it "discovers" that Bitcoin leads everything for free. Showing it fail on synthetic data with a known answer is the argument for Hayashi–Yoshida. | **implemented**, and confirmed to fail as predicted |
 | Shuffled-timestamp null | Destroys cross-asset timing while preserving each series' marginal distribution. Any lag surviving this is an artefact. | not implemented |
+| Hayashi–Yoshida | The estimator under test, not a baseline — listed here because the comparison against the gridded method is the argument. | **implemented**, Gate 1 passing |
 
 ## Experiments
 
@@ -102,6 +103,15 @@ place, rather than requiring every estimator to handle degenerate intervals.
   the peak itself stays at zero — the artefact is invisible to anyone reading
   only the argmax, which is the usual summary. Established in
   `tests/test_estimators.py`; awaiting exp001 for the figure.
+- **Hayashi–Yoshida does not make that mistake, and still finds real lags.** On
+  identical data (true lag zero, 10:1 imbalance) it reports a lead-lag ratio of
+  0.96–1.03 against the baseline's 197–387, and it recovers injected lags of
+  100 ms and 250 ms exactly. Gate 1 passes.
+- **The HY ratio is not bounded by 1** (observed 1.016). A's return over one
+  interval is counted against every overlapping B interval, so the numerator
+  carries a multiplicity the realised variances do not. Confirmed against the
+  literal double-sum definition. The v0.3 bootstrap must not assume a Fisher
+  z-transform is defined.
 
 ## Open threads
 
@@ -117,9 +127,10 @@ In order:
    so an invalid series cannot exist; arrays frozen against in-place writes.
 2. ~~`leadlag.synthetic`~~ — **done.** B a known delayed copy of A, independent
    Poisson arrivals, configurable trade-rate ratio. The measuring stick.
-3. `leadlag.estimators` — gridded baseline **done**; Hayashi–Yoshida and its
-   comparison against the baseline still to come.
-4. exp001 and CI — Gate 1, green.
+3. ~~`leadlag.estimators`~~ — **done.** Gridded baseline and Hayashi–Yoshida,
+   verified against each other and against an O(n·m) oracle.
+4. exp001 — the figure. CI is green and Gate 1 passes in the test suite; what
+   remains is the experiment entrypoint, provenance and the plot.
 
 Then ingestion, and the questions that follow it:
 
