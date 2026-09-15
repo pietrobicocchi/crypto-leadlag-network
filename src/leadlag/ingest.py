@@ -225,3 +225,41 @@ def download_bytes(url: str, *, attempts: int = 3, timeout_s: float = 60.0) -> b
                 raise
         time.sleep(2.0**attempt)
     return None
+
+
+def main(config_name: str = "ingest") -> None:
+    """Fetch everything `configs/<config_name>.yaml` asks for, and report.
+
+    Run with `make ingest`. Safe to re-run: verified archives are not fetched
+    again, so an interrupted download resumes where it stopped.
+    """
+    from leadlag.run import ROOT, load_config
+
+    config = load_config(config_name)
+    start = config["dates"]["start"]
+    dates = [
+        start + dt.timedelta(days=i * int(config["dates"]["stride_days"]))
+        for i in range(int(config["dates"]["count"]))
+    ]
+    cache_dir = ROOT / config["cache_dir"]
+
+    results = ingest(
+        config["symbols"],
+        dates,
+        cache_dir=cache_dir,
+        budget_bytes=config.get("budget_bytes"),
+    )
+
+    counts: dict[str, int] = {}
+    for result in results:
+        counts[result.status] = counts.get(result.status, 0) + 1
+    for status, count in sorted(counts.items()):
+        print(f"  {status:>18}: {count}")
+    print(f"  {'cache size':>18}: {_cache_size(cache_dir) / 1e9:.2f} GB")
+    print(f"wrote {cache_dir / 'manifest.csv'}")
+
+
+if __name__ == "__main__":
+    import sys
+
+    main(sys.argv[1] if len(sys.argv) > 1 else "ingest")

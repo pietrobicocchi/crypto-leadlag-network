@@ -114,6 +114,17 @@ place, rather than requiring every estimator to handle degenerate intervals.
   cause is that B becomes so sparse that every correlation weakens and the
   ratio compresses, but that is a hypothesis, not a measurement. It does not
   affect Gate 1.
+- **Two of the archive's documented traps behave differently than expected.**
+  Header rows: real — USD-M `aggTrades` files from 2020 and 2021 have none,
+  2023 onward do. Microsecond timestamps: *not observed*. Every sampled file
+  from 2020-01 to 2026-09, including the mid-2025 window, is 13-digit
+  milliseconds. Seven samples across two symbols is not exhaustive and the
+  change may affect spot or another endpoint, so `normalize` will detect the
+  unit rather than assume it — but nothing here reproduces it.
+- **Archive sizes, measured 2026-03-02:** BTCUSDT and ETHUSDT 40 MB/day each,
+  the other six configured symbols 1.8–6.9 MB/day. The ten-day eight-symbol
+  pilot is 1.03 GB. Forty symbols over the same days is roughly 2 GB, not five
+  times the pilot — the two majors dominate the total.
 - **The HY ratio is not bounded by 1** (observed 1.016). A's return over one
   interval is counted against every overlapping B interval, so the numerator
   carries a multiplicity the realised variances do not. Confirmed against the
@@ -139,8 +150,9 @@ In order:
 4. ~~exp001~~ — **done.** Gate 1 is green in CI and reproduced as an experiment
    with provenance and a figure.
 
-Next: ingestion (`leadlag.ingest`, `leadlag.normalize`) against the Binance
-archive, now that the estimator is proven.
+5. ~~`leadlag.ingest`~~ — **done.** Verified, resumable, honest about gaps.
+6. `leadlag.normalize` — Binance CSV to `TradeSeries`, including header
+   detection, timestamp-unit detection and the tie-collapsing decided above.
 
 Then ingestion, and the questions that follow it:
 

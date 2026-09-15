@@ -1,4 +1,4 @@
-.PHONY: setup test lint fmt exp figures clean
+.PHONY: setup test lint fmt ingest exp figures clean
 
 setup:
 	uv sync --extra dev
@@ -13,6 +13,9 @@ lint:
 fmt:
 	uv run ruff format src experiments tests
 	uv run ruff check --fix src experiments tests
+
+ingest:
+	uv run python -m leadlag.ingest
 
 # make exp EXP=exp001
 exp:

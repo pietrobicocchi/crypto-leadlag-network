@@ -1,0 +1,30 @@
+# Which archives to fetch. Parameters only.
+
+symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - SOLUSDT
+  - XRPUSDT
+  - ADAUSDT
+  - DOGEUSDT
+  - AVAXUSDT
+  - LINKUSDT
+
+# Sampled days, not a contiguous run. Lead-lag at the millisecond scale is a
+# within-day phenomenon, so ten days spread over two months carry nearly the
+# information of sixty consecutive ones at a sixth of the disk.
+#
+# The stride is 6 rather than 7 deliberately: a stride of 7 would sample the
+# same weekday every time, and any day-of-week effect would be invisible.
+dates:
+  start: 2026-03-02
+  count: 10
+  stride_days: 6
+
+cache_dir: data/binance/aggTrades
+
+# Ingest stops rather than fill the disk. Counts the whole cache, not just
+# this run. Measured on 2026-03-02: BTCUSDT 40 MB/day, ETHUSDT 40 MB/day,
+# everything else 1.8-6.9 MB/day. This pilot is 1.03 GB; 40 symbols over the
+# same ten days would be roughly 2 GB, since the two majors dominate.
+budget_bytes: 2000000000   # 2 GB

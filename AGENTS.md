@@ -27,6 +27,7 @@ I am learning to code. **Optimise for my understanding, not for speed.**
 ## Structure
 
 ```
+data/             downloaded source archives (gitignored, large)
 src/leadlag/      reusable science, one module per pipeline stage
 experiments/      entrypoints — the questions we asked of it
 configs/          parameters only, never logic
@@ -48,9 +49,11 @@ One-way over immutable artifacts. A module appears when implemented, not before:
 maths: numpy arrays in, numbers out. It must be testable with no I/O. If a test
 for an estimator needs a fixture file, the design is wrong.
 
-**Only `normalize` knows that Binance exists.** Venue-specific parsing, column
-names, timestamp units and file quirks stop there. Adding a second venue should
-cost one file, not a rewrite.
+**Only `ingest` and `normalize` know that Binance exists**, and they know
+different halves of it. `ingest` knows where bytes come from: the URL layout
+and the `.CHECKSUM` sidecars. `normalize` knows what is inside them: columns,
+header rows, timestamp units, every other quirk. Neither knowledge may leak
+past those two files, so adding a venue costs two files and not a rewrite.
 
 **Notebooks import the library; they never define logic.** No reproduction path
 may depend on running notebook cells in a particular order.

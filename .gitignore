@@ -2,6 +2,9 @@
 outputs/*
 !outputs/.gitkeep
 
+# Downloaded source archives: never in git, and large.
+data/
+
 # Python
 __pycache__/
 *.py[cod]
