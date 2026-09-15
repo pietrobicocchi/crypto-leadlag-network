@@ -1,0 +1,25 @@
+# Parameters only. Anything that branches or computes belongs in Python.
+seed: 0
+
+data:
+  duration_s: 300.0
+  rate_a_hz: 200.0
+  volatility: 1.0e-3
+  # Small but non-zero: Hayashi-Yoshida is known not to be robust to
+  # microstructure noise, and a demonstration that assumes it away is weaker.
+  noise: 1.0e-5
+  initial_price: 100.0
+
+estimator:
+  bucket_ns: 50000000    # 50 ms
+  lag_half_width: 10     # candidate lags span +/- this many buckets
+
+# Panel (a): one illustrative pair, where the two methods disagree most.
+illustration:
+  true_lag_ns: 0
+  rate_ratio: 10
+
+# Panel (b): does the artefact grow with trade-rate imbalance?
+sweep:
+  rate_ratios: [1, 2, 5, 10, 20, 50]
+  n_seeds: 10

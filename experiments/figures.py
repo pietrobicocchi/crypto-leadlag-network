@@ -18,7 +18,9 @@ OUTPUTS = ROOT / "outputs"
 REPORT_FIGURES = ROOT / "report" / "figures"
 
 # report figure name  ->  path under outputs/
-FIGURES: dict[str, str] = {}
+FIGURES: dict[str, str] = {
+    "fig1_synthetic_recovery.pdf": "exp001/synthetic_recovery.pdf",
+}
 
 
 def main() -> None:
