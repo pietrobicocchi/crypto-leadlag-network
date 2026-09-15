@@ -75,7 +75,7 @@ place, rather than requiring every estimator to handle degenerate intervals.
 
 | Baseline | Why it is the right comparison | Status |
 | --- | --- | --- |
-| Naive gridded cross-correlation | It is what you get by chopping time into fixed buckets and forward-filling. It is the standard wrong answer: it manufactures a lag from trade-rate asymmetry alone, so it "discovers" that Bitcoin leads everything for free. Showing it fail on synthetic data with a known answer is the argument for Hayashi–Yoshida. | not implemented |
+| Naive gridded cross-correlation | It is what you get by chopping time into fixed buckets and forward-filling. It is the standard wrong answer: it manufactures a lead-lag finding from trade-rate asymmetry alone, so it "discovers" that Bitcoin leads everything for free. Showing it fail on synthetic data with a known answer is the argument for Hayashi–Yoshida. | **implemented**, and confirmed to fail as predicted |
 | Shuffled-timestamp null | Destroys cross-asset timing while preserving each series' marginal distribution. Any lag surviving this is an artefact. | not implemented |
 
 ## Experiments
@@ -95,6 +95,13 @@ place, rather than requiring every estimator to handle degenerate intervals.
 - The synthetic generator produces a known lag with the correct sign: a scan of
   candidate shifts bottoms out at the injected lag, 18.7x below the wrong-sign
   shift. CI runs that check on every push.
+- **The gridded baseline fabricates a lead-lag finding from trade-rate
+  asymmetry alone.** With a true lag of exactly zero and A trading 10x more
+  often than B, the Huth–Abergel lead-lag ratio reaches 64–180 (symmetric
+  control: 0.7–1.4), while peak correlation falls from 0.95 to 0.60. Critically
+  the peak itself stays at zero — the artefact is invisible to anyone reading
+  only the argmax, which is the usual summary. Established in
+  `tests/test_estimators.py`; awaiting exp001 for the figure.
 
 ## Open threads
 
@@ -110,9 +117,8 @@ In order:
    so an invalid series cannot exist; arrays frozen against in-place writes.
 2. ~~`leadlag.synthetic`~~ — **done.** B a known delayed copy of A, independent
    Poisson arrivals, configurable trade-rate ratio. The measuring stick.
-3. `leadlag.estimators` — the gridded baseline first, then Hayashi–Yoshida,
-   then the lag scan. Baseline first because watching it fail on a known answer
-   is what proves the generator reproduces the pathology.
+3. `leadlag.estimators` — gridded baseline **done**; Hayashi–Yoshida and its
+   comparison against the baseline still to come.
 4. exp001 and CI — Gate 1, green.
 
 Then ingestion, and the questions that follow it:
