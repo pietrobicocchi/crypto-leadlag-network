@@ -12,7 +12,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from leadlag.estimators import gridded_correlation, peak_lag
+from leadlag.estimators import gridded_correlation, lead_lag_ratio, peak_lag
 from leadlag.synthetic import delayed_pair
 
 MS = 1_000_000
@@ -73,6 +73,38 @@ def test_correlation_collapses_as_buckets_shrink():
     coarse = gridded_correlation(a, b, bucket_ns=200 * MS, lag_grid_ns=grid(200 * MS))
     fine = gridded_correlation(a, b, bucket_ns=2 * MS, lag_grid_ns=grid(2 * MS))
     assert fine.max() < 0.5 * coarse.max()
+
+
+def test_rate_asymmetry_alone_fabricates_a_lead_lag_finding():
+    """The headline failure, measured rather than predicted.
+
+    True lag is exactly zero and the two assets watch the same price path. The
+    only difference is that A trades ten times more often. That alone is enough
+    for the baseline to report an overwhelming lead-lag ratio - the artefact
+    that would "discover" Bitcoin leading every thin altcoin, for free.
+
+    Note what the peak does: nothing. It stays at zero. An analyst reading only
+    the argmax would see no problem at all.
+    """
+    bucket = 100 * MS
+    lags = grid(bucket, half_width=10)
+    a, b = dense_pair(0, rate_a=200.0, rate_b=20.0, duration_s=300.0)
+    corr = gridded_correlation(a, b, bucket_ns=bucket, lag_grid_ns=lags)
+
+    assert len(a) > 8 * len(b)
+    assert peak_lag(lags, corr) == 0
+    assert lead_lag_ratio(lags, corr) > 10.0
+
+
+def test_symmetric_rates_produce_no_such_artefact():
+    """The control. Same generator, same true lag of zero, equal trade rates."""
+    bucket = 100 * MS
+    lags = grid(bucket, half_width=10)
+    a, b = dense_pair(0, rate_a=200.0, rate_b=200.0, duration_s=300.0)
+    corr = gridded_correlation(a, b, bucket_ns=bucket, lag_grid_ns=lags)
+
+    assert peak_lag(lags, corr) == 0
+    assert 0.2 < lead_lag_ratio(lags, corr) < 5.0
 
 
 def test_peak_lag_returns_the_grid_value_at_the_maximum():
