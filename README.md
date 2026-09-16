@@ -106,7 +106,8 @@ periods, `.CHECKSUM` sidecars) are documented in
 
 | Where | What |
 | --- | --- |
-| `data/` | downloaded source archives, verified by SHA-256 (gitignored) |
+| `data/binance/` | source archives, verified by SHA-256 (gitignored) |
+| `data/canonical/` | parsed `TradeSeries`, ~0.28x the source size (gitignored) |
 | `src/leadlag/` | reusable science: the pipeline stages above, plus `run` (provenance) and `plotting` (visual language) |
 | `experiments/` | one file per question, `expNNN_name.py` |
 | `configs/` | parameters for each experiment, one YAML per experiment |

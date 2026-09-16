@@ -119,8 +119,26 @@ place, rather than requiring every estimator to handle degenerate intervals.
   2023 onward do. Microsecond timestamps: *not observed*. Every sampled file
   from 2020-01 to 2026-09, including the mid-2025 window, is 13-digit
   milliseconds. Seven samples across two symbols is not exhaustive and the
-  change may affect spot or another endpoint, so `normalize` will detect the
-  unit rather than assume it — but nothing here reproduces it.
+  change may affect spot or another endpoint, so `normalize` detects the unit
+  rather than assuming it — but nothing here reproduces it. Header detection is
+  verified against a real 2021 archive: 1,551,775 rows, no header row.
+- **Collapsing simultaneous trades removes most of the deepest symbol.** On
+  BTCUSDT 2026-03-02, 3,319,442 rows become 1,070,955 distinct milliseconds:
+  67.7% of rows share a millisecond with another, in clusters of up to 263. On
+  a quiet symbol (DOGEUSDT) it is 3.5%. This is the largest single
+  transformation in the pipeline, and it puts a floor of roughly one
+  millisecond on any lag that can be resolved — comfortably below the tens to
+  hundreds of milliseconds under study, but the lag grid must not pretend to
+  finer resolution than the data has.
+- **No dependency was needed for parsing.** Stdlib `csv` runs at ~500k rows/s:
+  8–9 s for a BTCUSDT day, about three minutes for the whole ten-day
+  eight-symbol pilot, parsed once and cached. `pandas` and `pyarrow` both
+  failed the justification test.
+- **The canonical cache is 0.20–0.49x its source archive**, ~0.28x overall for
+  the files held. High-volume symbols shrink most, because collapsing removes
+  most of their rows. The 1.03 GB pilot implies roughly 260 MB of canonical
+  data. Source archives are kept, so a bug in `normalize` costs a rerun and not
+  a re-download.
 - **Archive sizes, measured 2026-03-02:** BTCUSDT and ETHUSDT 40 MB/day each,
   the other six configured symbols 1.8–6.9 MB/day. The ten-day eight-symbol
   pilot is 1.03 GB. Forty symbols over the same days is roughly 2 GB, not five
@@ -151,8 +169,11 @@ In order:
    with provenance and a figure.
 
 5. ~~`leadlag.ingest`~~ — **done.** Verified, resumable, honest about gaps.
-6. `leadlag.normalize` — Binance CSV to `TradeSeries`, including header
-   detection, timestamp-unit detection and the tie-collapsing decided above.
+6. ~~`leadlag.normalize`~~ — **done.** Header and unit detection, collapsing,
+   and a canonical cache.
+
+Next: `leadlag.study` — run the estimators across the universe over the
+ingested days, caching per-pair results. Then exp002.
 
 Then ingestion, and the questions that follow it:
 

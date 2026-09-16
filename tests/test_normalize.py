@@ -69,10 +69,10 @@ def test_rejects_an_unexpected_schema(tmp_path):
 @pytest.mark.parametrize(
     ("stamp", "expected"),
     [
-        (1_772_409_600, 1_000_000_000),          # seconds
-        (1_772_409_600_000, 1_000_000),          # milliseconds
-        (1_772_409_600_000_000, 1_000),          # microseconds
-        (1_772_409_600_000_000_000, 1),          # nanoseconds
+        (1_772_409_600, 1_000_000_000),  # seconds
+        (1_772_409_600_000, 1_000_000),  # milliseconds
+        (1_772_409_600_000_000, 1_000),  # microseconds
+        (1_772_409_600_000_000_000, 1),  # nanoseconds
     ],
 )
 def test_detects_the_timestamp_unit(stamp, expected):
@@ -90,9 +90,7 @@ def test_an_unrecognisable_timestamp_is_rejected(stamp):
 def test_microsecond_stamps_produce_the_same_series(tmp_path):
     """Same instants, different unit in the file: the result must be identical."""
     ms = read_archive(write_zip(tmp_path, csv_rows()), symbol="X")
-    us = read_archive(
-        write_zip(tmp_path, csv_rows(unit_scale=1000), name="us"), symbol="X"
-    )
+    us = read_archive(write_zip(tmp_path, csv_rows(unit_scale=1000), name="us"), symbol="X")
     assert np.array_equal(ms.ts_ns, us.ts_ns)
 
 
@@ -102,8 +100,8 @@ def test_collapsing_keeps_the_last_price_and_sums_quantity():
     qty = np.array([5.0, 7.0, 11.0])
     ts_c, price_c, qty_c = collapse_simultaneous(ts, price, qty)
     assert np.array_equal(ts_c, [10, 20])
-    assert np.array_equal(price_c, [2.0, 3.0])       # last price in the millisecond
-    assert np.array_equal(qty_c, [12.0, 11.0])       # volume preserved exactly
+    assert np.array_equal(price_c, [2.0, 3.0])  # last price in the millisecond
+    assert np.array_equal(qty_c, [12.0, 11.0])  # volume preserved exactly
     assert qty_c.sum() == qty.sum()
 
 
