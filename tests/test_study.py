@@ -129,9 +129,7 @@ def test_an_unmovable_series_is_reported_as_an_estimator_error_not_raised(tmp_pa
     cannot be this degenerate, but a crashed run over the other 27 pairs for
     one dead symbol would be a worse outcome than reporting it and moving on."""
     ts = np.array([0, 1_000_000, 2_000_000], dtype=np.int64)
-    flat = TradeSeries(
-        symbol="AAA", ts_ns=ts, price=np.full(3, 100.0), qty=np.ones(3)
-    )
+    flat = TradeSeries(symbol="AAA", ts_ns=ts, price=np.full(3, 100.0), qty=np.ones(3))
     moving = TradeSeries(
         symbol="BBB", ts_ns=ts, price=np.array([100.0, 101.0, 99.0]), qty=np.ones(3)
     )

@@ -23,6 +23,7 @@ than assumed:
 from __future__ import annotations
 
 import csv
+import datetime as dt
 import io
 import zipfile
 from pathlib import Path
@@ -52,6 +53,15 @@ _UNITS_NS = {
     1_000: 1_000_000,  # microseconds
     1: 1_000_000_000,  # nanoseconds
 }
+
+
+def canonical_name(symbol: str, date: dt.date) -> str:
+    """Filename of one symbol's canonical cache for one day.
+
+    Mirrors `ingest.archive_name`, so a canonical file and the raw archive it
+    came from are easy to line up on disk, with `.npz` the only difference.
+    """
+    return f"{symbol}-aggTrades-{date:%Y-%m-%d}.npz"
 
 
 def read_archive(path: Path, *, symbol: str) -> TradeSeries:
