@@ -1,0 +1,27 @@
+# Parameters only. Anything that branches or computes belongs in Python.
+
+# Same 8 symbols and 10 sampled days as configs/ingest.yaml - the universe
+# decided for exp002 is the one already ingested, not a larger one.
+symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - SOLUSDT
+  - XRPUSDT
+  - ADAUSDT
+  - DOGEUSDT
+  - AVAXUSDT
+  - LINKUSDT
+
+dates:
+  start: 2026-03-02
+  count: 10
+  stride_days: 6
+
+# Same grid as exp001's synthetic recovery test: 50ms steps, +/-500ms range.
+lag_grid:
+  step_ns: 50000000    # 50 ms
+  half_width: 10
+
+raw_dir: data/binance/aggTrades
+canonical_dir: data/canonical
+results_path: outputs/study/results.csv

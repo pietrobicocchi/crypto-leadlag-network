@@ -84,7 +84,7 @@ place, rather than requiring every estimator to handle degenerate intervals.
 | ID | Question | Status | Result |
 | --- | --- | --- | --- |
 | exp001 | Does Hayashi–Yoshida recover a known lag on asynchronous synthetic data where the gridded baseline fails? | **done** | `outputs/exp001/`, `report/figures/fig1_synthetic_recovery.pdf` |
-| exp002 | What is the pairwise lag matrix across the universe, with bootstrap CIs and Benjamini–Hochberg correction over ~600 tests? | not started | — |
+| exp002 | What is the pairwise lag matrix across the universe, with bootstrap CIs and Benjamini–Hochberg correction over 28 tests? | not started | — |
 | exp003 | Is the directed lead–lag network stable across rolling windows, and does leadership rank track liquidity? | not started | — |
 | exp004 | What is net Sharpe as a function of round-trip latency and fee level? | not started | — |
 
@@ -172,14 +172,19 @@ In order:
 6. ~~`leadlag.normalize`~~ — **done.** Header and unit detection, collapsing,
    and a canonical cache.
 
-Next: `leadlag.study` — run the estimators across the universe over the
-ingested days, caching per-pair results. Then exp002.
+7. ~~`leadlag.study`~~ — **done.** Hayashi–Yoshida over every pair in the
+   8-symbol universe, one estimate per pair per full trading day, resumable
+   canonical caching, gaps reported as `missing_data` rather than raised.
 
-Then ingestion, and the questions that follow it:
+Decided: lag grid is 50ms steps, ±500ms (`configs/study.yaml`, same as
+exp001's synthetic grid); universe is the 8 symbols already ingested, 28
+pairs; one estimate per pair per full trading day, not a sub-day window.
 
-- Choose the lag grid: resolution and range. Too coarse hides the effect, too
-  fine multiplies the hypothesis count that exp002 must correct for.
-- Decide the universe and window length (affects the ~600-test count).
+Next: exp002 — the pairwise lag matrix, bootstrap CIs, Benjamini–Hochberg
+correction over 28 tests. Most of the universe still has no canonical cache
+(`make study` currently reports 276 `missing_data` against 4 `ok`, since only
+BTCUSDT, ADAUSDT and DOGEUSDT have been ingested so far) — exp002 needs the
+other five symbols' archives fetched first, with `make ingest`.
 
 ## Claims → evidence
 
