@@ -84,7 +84,7 @@ place, rather than requiring every estimator to handle degenerate intervals.
 | ID | Question | Status | Result |
 | --- | --- | --- | --- |
 | exp001 | Does Hayashi–Yoshida recover a known lag on asynchronous synthetic data where the gridded baseline fails? | **done** | `outputs/exp001/`, `report/figures/fig1_synthetic_recovery.pdf` |
-| exp002 | What is the pairwise lag matrix across the universe, with bootstrap CIs and Benjamini–Hochberg correction over 28 tests? | not started | — |
+| exp002 | What is the pairwise lag matrix across the universe, with bootstrap CIs and Benjamini–Hochberg correction over 28 tests? | **run, not trusted** — the tested statistic is uncalibrated | `outputs/exp002/` |
 | exp003 | Is the directed lead–lag network stable across rolling windows, and does leadership rank track liquidity? | not started | — |
 | exp004 | What is net Sharpe as a function of round-trip latency and fee level? | not started | — |
 
@@ -153,6 +153,27 @@ place, rather than requiring every estimator to handle degenerate intervals.
   8/10 by 11 ms; SOL leads LINK, DOGE and AVAX on 10/10 days, but by only
   1.5–5.5 ms. About half the pairs have no consistent sign. Unconfirmed until
   exp002 puts confidence intervals on it.
+- **exp002 ran, and its significance test is not yet trustworthy.** Pooled
+  over 10 days, 26 of 28 pairs pass BH at 5% on the curve-asymmetry statistic
+  — most at the smallest q the 2000 draws allow. Three reasons to distrust it:
+  (1) the asymmetries are tiny (0.001–0.02 on correlations of 0.08–0.27), so
+  with 2,880 blocks almost anything is "significant"; (2) the pattern is
+  per-symbol, not per-pair — ADA "leads" all seven others and AVAX trails all
+  seven — which looks like a property of one symbol's price process rather
+  than of information flow; (3) asymmetry and peak lag disagree: BTC→DOGE has
+  a peak interval of [+9.5, +12.5] ms but asymmetry q = 0.75, and for ADA–SOL
+  they point opposite ways. A zero-lag null on real trade clocks (one shared
+  random walk observed at each symbol's real timestamps, one day) flagged 2 of
+  12 runs at 95%; independent price noise on one side did not fake
+  leadership. Not enough runs to calibrate anything.
+- **The peak lags, by contrast, look like the hypothesis.** Ordered by
+  trading activity (ETH, BTC, SOL, XRP, DOGE, ADA, AVAX, LINK), ETH, BTC and
+  SOL lead the five smaller symbols by 4.5–13.5 ms with bootstrap intervals
+  clear of zero, and the five smaller symbols are mutually synchronous
+  (±0.5 ms). Exceptions: ETH–BTC and ADA–BTC have intervals spanning both
+  signs. This is an observation, not a result: switching the tested statistic
+  to peak lag *because* it gives the expected picture would be choosing the
+  test after seeing the answer.
 - **A whole-millisecond lag grid biases Hayashi–Yoshida.** Timestamps are whole
   milliseconds, so at a whole-ms lag some A and B intervals share an endpoint
   exactly, and the half-open overlap rule drops their products. The curve is a
@@ -209,16 +230,16 @@ Decided: two lag grids, both half a millisecond off the clock
 in 1 ms steps. `make study` writes `outputs/study/results_coarse.csv` and
 `results_fine.csv`.
 
-Next: exp002 — the pairwise lag matrix on the fine grid. Decided design:
-- **CIs by block bootstrap over HY contributions.** A new pure function in
-  `estimators` returns the HY numerator split into 5-minute blocks × lags (and
-  each block's realised variances); each bootstrap draw resamples blocks across
-  a pair's 10 days and re-sums. No series is cut and re-stitched, so no fake
-  intervals appear at the seams.
-- **BH p-value from curve asymmetry:** mean correlation at positive lags minus
-  at negative lags, bootstrapped. The peak lag is reported alongside, not
-  tested — on flat curves the argmax is noisy.
-- Shuffled-timestamp null deferred.
+exp002 is built (`make exp EXP=exp002`, ~3 min): HY on the fine grid, per-block
+sums from `hayashi_yoshida_blocks`, 2000 multinomial block-bootstrap draws per
+pair, BH at 5%. See "What we have learned" for why its output is not yet a
+result.
+
+Next: **calibrate before concluding.** Run a zero-lag null on real trade
+clocks across all pairs and days, enough replications to measure each
+statistic's false-positive rate (asymmetry and peak lag) at the nominal 5%.
+Decide which statistic goes into BH from that calibration, not from the real
+data's output. Undecided.
 
 ## Claims → evidence
 
