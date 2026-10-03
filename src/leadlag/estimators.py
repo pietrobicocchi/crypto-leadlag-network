@@ -120,19 +120,8 @@ def hayashi_yoshida_correlation(
 
     correlation = np.empty(lag_grid_ns.size, dtype=np.float64)
     for k, lag in enumerate(lag_grid_ns):
-        shifted_b = b.ts_ns - lag
-        # For A's interval i, the overlapping B intervals are contiguous because
-        # both clocks are sorted. Its bounds are two binary searches:
-        #   lo: the first j with s[j+1] > t[i]      (B's interval ends after A's starts)
-        #   hi: one past the last j with s[j] < t[i+1]  (B's interval starts before A's ends)
-        lo = np.searchsorted(shifted_b, a.ts_ns[:-1], side="right") - 1
-        hi = np.searchsorted(shifted_b, a.ts_ns[1:], side="left")
-        n_b = log_returns_b.size
-        np.clip(lo, 0, n_b, out=lo)
-        np.clip(hi, 0, n_b, out=hi)
-        np.maximum(hi, lo, out=hi)  # an empty range must stay empty, not go negative
-        covariance = float(np.sum(log_returns_a * (cumulative_b[hi] - cumulative_b[lo])))
-        correlation[k] = covariance / normaliser
+        overlapping_b = _overlapping_b_returns(a.ts_ns, b.ts_ns - lag, cumulative_b)
+        correlation[k] = float(np.sum(log_returns_a * overlapping_b)) / normaliser
     return correlation
 
 
@@ -185,7 +174,31 @@ def hayashi_yoshida_blocks(
     is a ValueError, not silently dropped: a dropped term breaks the identity
     with `hayashi_yoshida_correlation` without any other sign.
     """
-    raise NotImplementedError
+    _check_series(a, "a")
+    _check_series(b, "b")
+    _check_lag_grid(lag_grid_ns)
+    _check_block_edges(block_edges_ns)
+
+    n_blocks = block_edges_ns.size - 1
+    block_a = _block_of(a.ts_ns[:-1], block_edges_ns)
+    block_b = _block_of(b.ts_ns[:-1], block_edges_ns)
+
+    log_returns_a = np.diff(np.log(a.price))
+    log_returns_b = np.diff(np.log(b.price))
+    cumulative_b = np.concatenate([[0.0], np.cumsum(log_returns_b)])
+
+    covariance = np.empty((n_blocks, lag_grid_ns.size), dtype=np.float64)
+    for k, lag in enumerate(lag_grid_ns):
+        overlapping_b = _overlapping_b_returns(a.ts_ns, b.ts_ns - lag, cumulative_b)
+        # bincount with weights adds each A interval's product into its block's row.
+        covariance[:, k] = np.bincount(
+            block_a, weights=log_returns_a * overlapping_b, minlength=n_blocks
+        )
+    return HYBlocks(
+        covariance=covariance,
+        variance_a=np.bincount(block_a, weights=log_returns_a**2, minlength=n_blocks),
+        variance_b=np.bincount(block_b, weights=log_returns_b**2, minlength=n_blocks),
+    )
 
 
 def peak_lag(lag_grid_ns: np.ndarray, correlation: np.ndarray) -> int:
@@ -232,6 +245,46 @@ def _check_lag_grid(lag_grid_ns: np.ndarray) -> None:
         raise TypeError(f"lag_grid_ns must be an int64 numpy array, got {dtype}")
     if lag_grid_ns.ndim != 1:
         raise ValueError(f"lag_grid_ns must be 1-D, got {lag_grid_ns.ndim}-D")
+
+
+def _overlapping_b_returns(
+    ts_a: np.ndarray, shifted_ts_b: np.ndarray, cumulative_b: np.ndarray
+) -> np.ndarray:
+    """For each of A's intervals, the summed B returns over intervals overlapping it.
+
+    For A's interval i, the overlapping B intervals are contiguous because both
+    clocks are sorted. Its bounds are two binary searches:
+      lo: the first j with s[j+1] > t[i]          (B's interval ends after A's starts)
+      hi: one past the last j with s[j] < t[i+1]  (B's interval starts before A's ends)
+    and the sum over that range is one subtraction of prefix sums.
+    """
+    lo = np.searchsorted(shifted_ts_b, ts_a[:-1], side="right") - 1
+    hi = np.searchsorted(shifted_ts_b, ts_a[1:], side="left")
+    n_b = cumulative_b.size - 1
+    np.clip(lo, 0, n_b, out=lo)
+    np.clip(hi, 0, n_b, out=hi)
+    np.maximum(hi, lo, out=hi)  # an empty range must stay empty, not go negative
+    return cumulative_b[hi] - cumulative_b[lo]
+
+
+def _check_block_edges(block_edges_ns: np.ndarray) -> None:
+    if not isinstance(block_edges_ns, np.ndarray) or block_edges_ns.dtype != np.int64:
+        dtype = getattr(block_edges_ns, "dtype", type(block_edges_ns).__name__)
+        raise TypeError(f"block_edges_ns must be an int64 numpy array, got {dtype}")
+    if block_edges_ns.ndim != 1 or block_edges_ns.size < 2:
+        raise ValueError("block_edges_ns must be 1-D with at least two edges")
+    if np.any(np.diff(block_edges_ns) <= 0):
+        raise ValueError("block_edges_ns must be strictly increasing")
+
+
+def _block_of(starts_ns: np.ndarray, block_edges_ns: np.ndarray) -> np.ndarray:
+    """Index of the block `[edges[k], edges[k+1])` holding each interval start."""
+    if starts_ns[0] < block_edges_ns[0] or starts_ns[-1] >= block_edges_ns[-1]:
+        raise ValueError(
+            "an interval starts outside the blocks "
+            f"[{block_edges_ns[0]}, {block_edges_ns[-1]}); widen block_edges_ns"
+        )
+    return np.searchsorted(block_edges_ns, starts_ns, side="right") - 1
 
 
 def _check_series(series: TradeSeries, name: str) -> None:
