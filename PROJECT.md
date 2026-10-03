@@ -143,10 +143,27 @@ place, rather than requiring every estimator to handle degenerate intervals.
   the other six configured symbols 1.8–6.9 MB/day. The ten-day eight-symbol
   pilot is 1.03 GB. Forty symbols over the same days is roughly 2 GB, not five
   times the pilot — the two majors dominate the total.
-- **On real data, a 50 ms grid sees almost no lag.** Across 28 pairs × 10
-  days, the Hayashi–Yoshida peak is at 0 ms in 232 pair-days, −50 ms in 23,
-  +50 ms in 25, and never further out. Nothing happens at ±100–500 ms. Whether
-  there is structure *inside* ±50 ms is not yet measured.
+- **On real data, nothing happens beyond ±50 ms.** On the coarse grid (50 ms
+  steps to ±500 ms) 260 of 280 pair-days peak at ±0.5 ms, the rest at
+  ±50.5 ms, never further out.
+- **Inside ±50 ms there is structure.** On the fine grid (1 ms steps) the
+  median |peak| is 4.5 ms, upper quartile 10.5 ms. Counting days, not yet a
+  test: BTC leads XRP, LINK and AVAX on 10/10 days by a median 12.5–16.5 ms;
+  ETH leads XRP, LINK and AVAX on 10/10 days by 10–13 ms; BTC leads ETH on
+  8/10 by 11 ms; SOL leads LINK, DOGE and AVAX on 10/10 days, but by only
+  1.5–5.5 ms. About half the pairs have no consistent sign. Unconfirmed until
+  exp002 puts confidence intervals on it.
+- **A whole-millisecond lag grid biases Hayashi–Yoshida.** Timestamps are whole
+  milliseconds, so at a whole-ms lag some A and B intervals share an endpoint
+  exactly, and the half-open overlap rule drops their products. The curve is a
+  sawtooth: correlation drops ~3–10% at every whole ms and is flat between.
+  Ties are about twice as common at lag 0 as at 10 ms (BTC–AVAX: 9.1% vs 4.6%
+  of B's trades), so the bias is not uniform and pushes peaks away from zero.
+  Strong pairs moved ≤2.5 ms when ties were removed; weak pairs on flat days
+  flipped sign (BTC–SOL 2026-03-26: −7 → +20.5 ms). **Decision: every lag
+  sits half a millisecond off the clock**, ±(k·step + 0.5 ms), so a tie is
+  impossible. Exactly 0 ms is no longer a candidate; the data could not
+  resolve it anyway.
 - **The HY ratio is not bounded by 1** (observed 1.016). A's return over one
   interval is counted against every overlapping B interval, so the numerator
   carries a multiplicity the realised variances do not. Confirmed against the
@@ -187,11 +204,21 @@ pairs; one estimate per pair per full trading day, not a sub-day window.
 The whole universe is ingested and cached: `make study` reports 280 `ok`, no
 `missing_data`.
 
-Next: exp002 — the pairwise lag matrix, bootstrap CIs, Benjamini–Hochberg
-correction over 28 tests. **Blocked on a grid decision:** 232 of 280 pair-days
-peak at exactly 0 ms on the 50 ms grid, so the lag being measured is most
-likely below one grid step. The data resolve ~1 ms. Undecided: a finer grid,
-or a coarse scan followed by a fine one near zero.
+Decided: two lag grids, both half a millisecond off the clock
+(`configs/study.yaml`): coarse ±0.5–500.5 ms in 50 ms steps, fine ±0.5–50.5 ms
+in 1 ms steps. `make study` writes `outputs/study/results_coarse.csv` and
+`results_fine.csv`.
+
+Next: exp002 — the pairwise lag matrix on the fine grid. Decided design:
+- **CIs by block bootstrap over HY contributions.** A new pure function in
+  `estimators` returns the HY numerator split into 5-minute blocks × lags (and
+  each block's realised variances); each bootstrap draw resamples blocks across
+  a pair's 10 days and re-sums. No series is cut and re-stitched, so no fake
+  intervals appear at the seams.
+- **BH p-value from curve asymmetry:** mean correlation at positive lags minus
+  at negative lags, bootstrapped. The peak lag is reported alongside, not
+  tested — on flat curves the argmax is noisy.
+- Shuffled-timestamp null deferred.
 
 ## Claims → evidence
 
