@@ -155,7 +155,11 @@ def save_results(results: list[PairResult], path: Path) -> Path:
 
 
 def main(config_name: str = "study") -> None:
-    """Run the configured universe over the configured days. `make study`."""
+    """Run the configured universe over the configured days, once per lag grid.
+
+    `make study`. Each grid writes its own `results_<grid>.csv`; the canonical
+    cache is shared, so only the first grid pays for normalizing.
+    """
     from leadlag.run import ROOT, load_config
 
     config = load_config(config_name)
@@ -166,27 +170,28 @@ def main(config_name: str = "study") -> None:
         for i in range(int(dates_cfg["count"]))
     ]
 
-    grid = config["lag_grid"]
-    half_width = int(grid["half_width"])
-    lag_grid_ns = np.arange(-half_width, half_width + 1, dtype=np.int64) * int(grid["step_ns"])
+    for grid_name, grid in config["lag_grids"].items():
+        half_width = int(grid["half_width"])
+        lag_grid_ns = np.arange(-half_width, half_width + 1, dtype=np.int64) * int(grid["step_ns"])
+        print(f"{grid_name} grid: {lag_grid_ns.size} lags, step {int(grid['step_ns']) / 1e6:g} ms")
 
-    results = run_study(
-        config["symbols"],
-        dates,
-        canonical_dir=ROOT / config["canonical_dir"],
-        raw_dir=ROOT / config["raw_dir"],
-        lag_grid_ns=lag_grid_ns,
-    )
+        results = run_study(
+            config["symbols"],
+            dates,
+            canonical_dir=ROOT / config["canonical_dir"],
+            raw_dir=ROOT / config["raw_dir"],
+            lag_grid_ns=lag_grid_ns,
+        )
 
-    counts: dict[str, int] = {}
-    for result in results:
-        counts[result.status] = counts.get(result.status, 0) + 1
-    for status, count in sorted(counts.items()):
-        print(f"  {status:>18}: {count}")
+        counts: dict[str, int] = {}
+        for result in results:
+            counts[result.status] = counts.get(result.status, 0) + 1
+        for status, count in sorted(counts.items()):
+            print(f"  {status:>18}: {count}")
 
-    out_path = ROOT / config["results_path"]
-    save_results(results, out_path)
-    print(f"wrote {out_path}")
+        out_path = ROOT / config["results_dir"] / f"results_{grid_name}.csv"
+        save_results(results, out_path)
+        print(f"wrote {out_path}")
 
 
 if __name__ == "__main__":

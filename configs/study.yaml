@@ -17,11 +17,26 @@ dates:
   count: 10
   stride_days: 6
 
-# Same grid as exp001's synthetic recovery test: 50ms steps, +/-500ms range.
-lag_grid:
-  step_ns: 50000000    # 50 ms
-  half_width: 10
+# Two scans of the same pairs, each written to its own results file.
+#
+# coarse: the grid of exp001's synthetic recovery test, 50ms steps, +/-500ms.
+# It shows whether anything happens at long lags. On real data nothing does:
+# 232 of 280 pair-days peak at exactly 0.
+#
+# fine: 1ms steps, +/-50ms. Collapsing simultaneous trades puts the data's
+# resolution at about one millisecond, and a scratch scan put the real peaks
+# 6-29ms from zero - inside one coarse step. This is where the measurement is.
+#
+# Kept as two runs rather than one uneven grid: the lead-lag ratio sums squared
+# correlation over grid points, so 100 fine points would swamp 18 coarse ones.
+lag_grids:
+  coarse:
+    step_ns: 50000000    # 50 ms
+    half_width: 10
+  fine:
+    step_ns: 1000000     # 1 ms
+    half_width: 50
 
 raw_dir: data/binance/aggTrades
 canonical_dir: data/canonical
-results_path: outputs/study/results.csv
+results_dir: outputs/study   # one results_<grid>.csv per grid
