@@ -19,6 +19,7 @@ import pytest
 
 from leadlag.estimators import (
     gridded_correlation,
+    hayashi_yoshida_blocks,
     hayashi_yoshida_correlation,
     lead_lag_ratio,
     peak_lag,
@@ -182,3 +183,103 @@ def test_arguments_are_keyword_only():
     a, b = market_pair(0, duration_s=30.0)
     with pytest.raises(TypeError):
         hayashi_yoshida_correlation(a, b, np.array([0], dtype=np.int64))
+
+
+# --- Per-block sums, for the exp002 bootstrap --------------------------------
+
+
+def reference_hy_blocks(a: TradeSeries, b: TradeSeries, lag_ns: int, edges: np.ndarray):
+    """The same literal double sum, with each term filed by its interval's start.
+
+    A's interval i, and every product it collects, goes to the block holding
+    t[i]; B's squared return j goes to the block holding s[j] on B's own clock.
+    """
+    ts_a, ts_b = a.ts_ns, b.ts_ns - lag_ns
+    log_a, log_b = np.log(a.price), np.log(b.price)
+    block_of = lambda t: int(np.searchsorted(edges, t, side="right")) - 1  # noqa: E731
+    n_blocks = edges.size - 1
+    covariance = np.zeros(n_blocks)
+    variance_a = np.zeros(n_blocks)
+    variance_b = np.zeros(n_blocks)
+    for i in range(len(ts_a) - 1):
+        r_a = log_a[i + 1] - log_a[i]
+        variance_a[block_of(a.ts_ns[i])] += r_a**2
+        for j in range(len(ts_b) - 1):
+            if ts_a[i] < ts_b[j + 1] and ts_b[j] < ts_a[i + 1]:
+                covariance[block_of(a.ts_ns[i])] += r_a * (log_b[j + 1] - log_b[j])
+    for j in range(len(b.ts_ns) - 1):
+        variance_b[block_of(b.ts_ns[j])] += (log_b[j + 1] - log_b[j]) ** 2
+    return covariance, variance_a, variance_b
+
+
+@pytest.mark.parametrize("seed", range(8))
+def test_blocks_match_the_reference_term_by_term(seed):
+    a, b = tiny_pair(seed, n_a=12, n_b=10)
+    lags = np.array([-30, -7, 0, 7, 30], dtype=np.int64)
+    # Edges land on trade times as well as between them: an interval starting
+    # exactly on an edge belongs to the block that edge opens.
+    edges = np.array([0, 50, a.ts_ns[3], 120, 160, 200], dtype=np.int64)
+    edges = np.unique(edges)
+    blocks = hayashi_yoshida_blocks(a, b, lag_grid_ns=lags, block_edges_ns=edges)
+    for k, lag in enumerate(lags):
+        cov, var_a, var_b = reference_hy_blocks(a, b, int(lag), edges)
+        np.testing.assert_allclose(blocks.covariance[:, k], cov, rtol=1e-12, atol=1e-15)
+        np.testing.assert_allclose(blocks.variance_a, var_a, rtol=1e-12, atol=1e-15)
+        np.testing.assert_allclose(blocks.variance_b, var_b, rtol=1e-12, atol=1e-15)
+
+
+def test_summing_the_blocks_recovers_the_full_estimator():
+    """The identity the bootstrap rests on, at a realistic size and every lag."""
+    a, b = market_pair(100 * MS)
+    lags = np.arange(-10, 11, dtype=np.int64) * 50 * MS
+    edges = np.arange(0, 301, 10, dtype=np.int64) * 1_000 * MS  # 10 s blocks
+    blocks = hayashi_yoshida_blocks(a, b, lag_grid_ns=lags, block_edges_ns=edges)
+    summed = blocks.covariance.sum(axis=0) / np.sqrt(
+        blocks.variance_a.sum() * blocks.variance_b.sum()
+    )
+    full = hayashi_yoshida_correlation(a, b, lag_grid_ns=lags)
+    np.testing.assert_allclose(summed, full, rtol=1e-10)
+
+
+def test_blocks_have_the_documented_shapes_and_dtypes():
+    a, b = market_pair(0, duration_s=30.0)
+    lags = np.array([-MS, 0, MS], dtype=np.int64)
+    edges = np.arange(0, 31, 5, dtype=np.int64) * 1_000 * MS
+    blocks = hayashi_yoshida_blocks(a, b, lag_grid_ns=lags, block_edges_ns=edges)
+    assert blocks.covariance.shape == (6, 3)
+    assert blocks.variance_a.shape == blocks.variance_b.shape == (6,)
+    for array in (blocks.covariance, blocks.variance_a, blocks.variance_b):
+        assert array.dtype == np.float64
+
+
+def test_an_interval_outside_the_blocks_is_rejected_not_dropped():
+    a, b = market_pair(0, duration_s=30.0)
+    edges = np.array([0, 10, 20], dtype=np.int64) * 1_000 * MS  # stops 10 s short
+    with pytest.raises(ValueError, match="outside"):
+        hayashi_yoshida_blocks(
+            a, b, lag_grid_ns=np.array([0], dtype=np.int64), block_edges_ns=edges
+        )
+
+
+@pytest.mark.parametrize(
+    "edges",
+    [
+        np.array([0.0, 1e12]),  # float
+        np.array([0, 10, 10, 20], dtype=np.int64),  # not strictly increasing
+        np.array([0], dtype=np.int64),  # no blocks at all
+    ],
+)
+def test_malformed_block_edges_are_rejected(edges):
+    a, b = market_pair(0, duration_s=30.0)
+    with pytest.raises((TypeError, ValueError), match="block_edges_ns"):
+        hayashi_yoshida_blocks(
+            a, b, lag_grid_ns=np.array([0], dtype=np.int64), block_edges_ns=edges
+        )
+
+
+def test_blocks_arguments_are_keyword_only():
+    a, b = market_pair(0, duration_s=30.0)
+    with pytest.raises(TypeError):
+        hayashi_yoshida_blocks(
+            a, b, np.array([0], dtype=np.int64), np.array([0, 10], dtype=np.int64)
+        )
