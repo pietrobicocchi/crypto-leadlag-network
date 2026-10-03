@@ -11,6 +11,8 @@ back by that amount and asking how well the two then line up.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 
 from leadlag.types import TradeSeries
@@ -132,6 +134,58 @@ def hayashi_yoshida_correlation(
         covariance = float(np.sum(log_returns_a * (cumulative_b[hi] - cumulative_b[lo])))
         correlation[k] = covariance / normaliser
     return correlation
+
+
+@dataclass(frozen=True)
+class HYBlocks:
+    """Hayashi-Yoshida's three sums, split by the time block they started in.
+
+    `covariance` has shape (n_blocks, n_lags); `variance_a` and `variance_b`
+    have shape (n_blocks,). Summing every row recovers the full-sample
+    estimator exactly:
+
+        covariance.sum(axis=0) / sqrt(variance_a.sum() * variance_b.sum())
+            == hayashi_yoshida_correlation(a, b, lag_grid_ns=...)
+
+    That identity is what makes a block bootstrap honest: resampling rows and
+    re-summing is resampling this estimator, the one Gate 1 validated - not an
+    approximation of it.
+    """
+
+    covariance: np.ndarray
+    variance_a: np.ndarray
+    variance_b: np.ndarray
+
+
+def hayashi_yoshida_blocks(
+    a: TradeSeries,
+    b: TradeSeries,
+    *,
+    lag_grid_ns: np.ndarray,
+    block_edges_ns: np.ndarray,
+) -> HYBlocks:
+    """Hayashi-Yoshida's sums, unsummed over time, for a block bootstrap.
+
+    `block_edges_ns` is a strictly increasing int64 array of n_blocks + 1
+    edges; block k is the half-open span `[edges[k], edges[k+1])`.
+
+    Each term is filed under the block where its interval *starts*:
+    A's interval `(t[i], t[i+1]]` - and with it every B product it collects at
+    every lag - goes to the block containing `t[i]`; B's squared return over
+    `(s[j], s[j+1]]` goes to the block containing `s[j]`, on B's own clock,
+    since realised variance does not depend on the lag.
+
+    Why not cut each series into blocks and run the estimator on each piece:
+    the interval that straddles a cut would vanish, and a bootstrap that
+    stitched pieces back together would invent intervals at the seams. Filing
+    terms by start time changes nothing about which products exist, only which
+    row they are added to.
+
+    Every interval must start inside `[edges[0], edges[-1])`. One that does not
+    is a ValueError, not silently dropped: a dropped term breaks the identity
+    with `hayashi_yoshida_correlation` without any other sign.
+    """
+    raise NotImplementedError
 
 
 def peak_lag(lag_grid_ns: np.ndarray, correlation: np.ndarray) -> int:
