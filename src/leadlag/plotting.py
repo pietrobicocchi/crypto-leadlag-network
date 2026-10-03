@@ -33,6 +33,17 @@ METHOD_COLORS = {
 LEAD_LAG_CMAP = "RdBu_r"
 NOT_SIGNIFICANT_COLOR = "#D9D9D9"
 
+# The two candidate test statistics for "who leads", compared in exp005.
+STATISTIC_LABELS = {
+    "asymmetry": "Curve asymmetry",
+    "peak_lag": "Peak lag",
+}
+
+STATISTIC_COLORS = {
+    "asymmetry": "#B5523B",
+    "peak_lag": "#2F5D8A",
+}
+
 # --- page geometry, in inches ------------------------------------------------
 
 COLUMN_WIDTH = 3.4
