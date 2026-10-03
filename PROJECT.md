@@ -87,6 +87,7 @@ place, rather than requiring every estimator to handle degenerate intervals.
 | exp002 | What is the pairwise lag matrix across the universe, with bootstrap CIs and Benjamini–Hochberg correction over 28 tests? | **run, not trusted** — the tested statistic is uncalibrated | `outputs/exp002/` |
 | exp003 | Is the directed lead–lag network stable across rolling windows, and does leadership rank track liquidity? | not started | — |
 | exp004 | What is net Sharpe as a function of round-trip latency and fee level? | not started | — |
+| exp005 | Under a known zero lag, how often do exp002's tests (curve asymmetry, peak lag) fire at nominal 5%? Decides which may enter BH. | **done** | both pass the pre-registered rule; asymmetry only narrowly. `outputs/exp005/` |
 
 ## What we have learned
 
@@ -166,6 +167,23 @@ place, rather than requiring every estimator to handle degenerate intervals.
   random walk observed at each symbol's real timestamps, one day) flagged 2 of
   12 runs at 95%; independent price noise on one side did not fake
   leadership. Not enough runs to calibrate anything.
+- **Neither test is badly miscalibrated, but curve asymmetry fires twice as
+  often as it should when the true lag is zero.** exp005, rule fixed before
+  the run (both nulls; Wilson 95% interval of the false-positive rate at
+  nominal 5% must not lie entirely above 5%). Shift null (real prices, B
+  rotated 1–60 min, 140 tests): asymmetry 1.4% [0.4, 5.1], peak lag 0.7%
+  [0.1, 3.9]. Latent null (real clocks, shared random walk, 84 tests):
+  asymmetry **9.5% [4.9, 17.7]**, peak lag 2.4% [0.7, 8.3]. Both pass;
+  asymmetry by 0.1 percentage points. Its p-values are anti-conservative
+  under asynchronous sampling with strong correlation, which is exactly
+  the real-data regime.
+- **The calibration does not explain exp002's 26/28.** Under both nulls the
+  largest |asymmetry| is 0.0016; 25 of exp002's 26 significant pairs exceed
+  it, most by 3–10x. But neither null models microstructure *together with*
+  correlation: the shift null destroys the correlation that a quirk like
+  bid-ask bounce would need to show up in the cross-curve. So the per-symbol
+  pattern (ADA "leads" all, AVAX trails all) is still unexplained, not
+  ruled out as an artefact.
 - **The peak lags, by contrast, look like the hypothesis.** Ordered by
   trading activity (ETH, BTC, SOL, XRP, DOGE, ADA, AVAX, LINK), ETH, BTC and
   SOL lead the five smaller symbols by 4.5–13.5 ms with bootstrap intervals
@@ -235,11 +253,15 @@ sums from `hayashi_yoshida_blocks`, 2000 multinomial block-bootstrap draws per
 pair, BH at 5%. See "What we have learned" for why its output is not yet a
 result.
 
-Next: **calibrate before concluding.** Run a zero-lag null on real trade
-clocks across all pairs and days, enough replications to measure each
-statistic's false-positive rate (asymmetry and peak lag) at the nominal 5%.
-Decide which statistic goes into BH from that calibration, not from the real
-data's output. Undecided.
+Calibrated (exp005): both statistics pass the pre-registered rule; curve
+asymmetry only narrowly, at twice its nominal false-positive rate under the
+latent null.
+
+Next: undecided — whether exp002's conclusion should rest on asymmetry (which
+passed, narrowly), on peak lag (better calibrated, but switching now is
+choosing after seeing), or on both with the disagreement reported. And
+whether the per-symbol asymmetry pattern needs a third null that keeps
+microstructure and correlation together.
 
 ## Claims → evidence
 
