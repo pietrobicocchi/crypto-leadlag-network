@@ -170,10 +170,16 @@ def main(config_name: str = "study") -> None:
         for i in range(int(dates_cfg["count"]))
     ]
 
+    tie_offset_ns = int(config["tie_offset_ns"])
     for grid_name, grid in config["lag_grids"].items():
-        half_width = int(grid["half_width"])
-        lag_grid_ns = np.arange(-half_width, half_width + 1, dtype=np.int64) * int(grid["step_ns"])
-        print(f"{grid_name} grid: {lag_grid_ns.size} lags, step {int(grid['step_ns']) / 1e6:g} ms")
+        # Symmetric about zero but never on it: +/-(k*step + offset).
+        positive = np.arange(int(grid["half_width"]) + 1, dtype=np.int64) * int(grid["step_ns"])
+        positive += tie_offset_ns
+        lag_grid_ns = np.concatenate([-positive[::-1], positive])
+        print(
+            f"{grid_name} grid: {lag_grid_ns.size} lags, step {int(grid['step_ns']) / 1e6:g} ms, "
+            f"offset {tie_offset_ns / 1e6:g} ms"
+        )
 
         results = run_study(
             config["symbols"],

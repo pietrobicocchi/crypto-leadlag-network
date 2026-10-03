@@ -29,6 +29,14 @@ dates:
 #
 # Kept as two runs rather than one uneven grid: the lead-lag ratio sums squared
 # correlation over grid points, so 100 fine points would swamp 18 coarse ones.
+#
+# Every lag sits half a millisecond off the millisecond clock: +/-(k*step +
+# tie_offset_ns). Timestamps are whole milliseconds, so at a whole-millisecond
+# lag some A and B intervals share an endpoint exactly, and HY's half-open rule
+# drops their products. Those ties are about twice as common at lag 0 as at
+# 10ms, so a whole-millisecond grid pushes peaks away from zero - on flat days
+# far enough to flip a pair's sign. Half a millisecond off, a tie is impossible.
+tie_offset_ns: 500000    # 0.5 ms
 lag_grids:
   coarse:
     step_ns: 50000000    # 50 ms
