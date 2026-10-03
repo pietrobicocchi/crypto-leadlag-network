@@ -1,0 +1,47 @@
+# Parameters only. Anything that branches or computes belongs in Python.
+seed: 0
+
+# Universe, days, grid and bootstrap: identical to configs/exp002.yaml, because
+# the point is to calibrate exactly the test exp002 ran.
+symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - SOLUSDT
+  - XRPUSDT
+  - ADAUSDT
+  - DOGEUSDT
+  - AVAXUSDT
+  - LINKUSDT
+
+dates:
+  start: 2026-03-02
+  count: 10
+  stride_days: 6
+
+canonical_dir: data/canonical
+
+lag_grid:
+  step_ns: 1000000       # 1 ms
+  half_width: 50
+  tie_offset_ns: 500000  # 0.5 ms
+
+bootstrap:
+  block_s: 300
+  n_draws: 2000
+
+# Nominal size of each per-pair test, before any multiple-testing correction.
+nominal_alpha: 0.05
+
+nulls:
+  # Real prices, real trades; B's whole day rotated by a random offset, wrapping
+  # at midnight. Destroys cross-asset timing, keeps every within-symbol quirk.
+  shift:
+    replicates: 5
+    min_offset_s: 60
+    max_offset_s: 3600
+  # Real trade timestamps; prices replaced by one shared random walk observed at
+  # each symbol's own times, plus independent noise. True lag exactly zero.
+  latent:
+    replicates: 3
+    volatility_per_sqrt_s: 1.0e-4
+    noise: 1.0e-5
