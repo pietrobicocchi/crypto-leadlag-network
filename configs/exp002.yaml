@@ -1,0 +1,37 @@
+# Parameters only. Anything that branches or computes belongs in Python.
+seed: 0
+
+# The universe and days of configs/study.yaml.
+symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - SOLUSDT
+  - XRPUSDT
+  - ADAUSDT
+  - DOGEUSDT
+  - AVAXUSDT
+  - LINKUSDT
+
+dates:
+  start: 2026-03-02
+  count: 10
+  stride_days: 6
+
+canonical_dir: data/canonical
+
+# The fine grid of configs/study.yaml: +/-(k*1ms + 0.5ms), k = 0..50. Half a
+# millisecond off the clock so no lag can tie two whole-millisecond timestamps.
+lag_grid:
+  step_ns: 1000000       # 1 ms
+  half_width: 50
+  tie_offset_ns: 500000  # 0.5 ms
+
+# Block bootstrap over Hayashi-Yoshida's per-block sums. Blocks from all days of
+# a pair are pooled and resampled together: 288 blocks/day x 10 days.
+bootstrap:
+  block_s: 300           # 5 minutes
+  n_draws: 2000
+  ci_level: 0.95
+
+# Benjamini-Hochberg over the 28 pairs, on the curve-asymmetry p-value.
+fdr: 0.05
