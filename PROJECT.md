@@ -143,6 +143,10 @@ place, rather than requiring every estimator to handle degenerate intervals.
   the other six configured symbols 1.8–6.9 MB/day. The ten-day eight-symbol
   pilot is 1.03 GB. Forty symbols over the same days is roughly 2 GB, not five
   times the pilot — the two majors dominate the total.
+- **On real data, a 50 ms grid sees almost no lag.** Across 28 pairs × 10
+  days, the Hayashi–Yoshida peak is at 0 ms in 232 pair-days, −50 ms in 23,
+  +50 ms in 25, and never further out. Nothing happens at ±100–500 ms. Whether
+  there is structure *inside* ±50 ms is not yet measured.
 - **The HY ratio is not bounded by 1** (observed 1.016). A's return over one
   interval is counted against every overlapping B interval, so the numerator
   carries a multiplicity the realised variances do not. Confirmed against the
@@ -180,11 +184,14 @@ Decided: lag grid is 50ms steps, ±500ms (`configs/study.yaml`, same as
 exp001's synthetic grid); universe is the 8 symbols already ingested, 28
 pairs; one estimate per pair per full trading day, not a sub-day window.
 
+The whole universe is ingested and cached: `make study` reports 280 `ok`, no
+`missing_data`.
+
 Next: exp002 — the pairwise lag matrix, bootstrap CIs, Benjamini–Hochberg
-correction over 28 tests. Most of the universe still has no canonical cache
-(`make study` currently reports 276 `missing_data` against 4 `ok`, since only
-BTCUSDT, ADAUSDT and DOGEUSDT have been ingested so far) — exp002 needs the
-other five symbols' archives fetched first, with `make ingest`.
+correction over 28 tests. **Blocked on a grid decision:** 232 of 280 pair-days
+peak at exactly 0 ms on the 50 ms grid, so the lag being measured is most
+likely below one grid step. The data resolve ~1 ms. Undecided: a finer grid,
+or a coarse scan followed by a fine one near zero.
 
 ## Claims → evidence
 
