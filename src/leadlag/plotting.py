@@ -26,6 +26,13 @@ METHOD_COLORS = {
     "gridded": "#8A8A8A",  # grey: the method that fails, in every figure it fails in
 }
 
+# Lead-lag direction. Diverging, centred on zero: one hue for "row leads", the
+# other for "row trails". A result that fails the multiple-testing correction
+# is drawn in NOT_SIGNIFICANT_COLOR and never in the diverging map, so a reader
+# cannot mistake a non-finding for a small lag.
+LEAD_LAG_CMAP = "RdBu_r"
+NOT_SIGNIFICANT_COLOR = "#D9D9D9"
+
 # --- page geometry, in inches ------------------------------------------------
 
 COLUMN_WIDTH = 3.4
