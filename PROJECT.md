@@ -88,6 +88,7 @@ place, rather than requiring every estimator to handle degenerate intervals.
 | exp003 | Is the directed lead–lag network stable across rolling windows, and does leadership rank track liquidity? | not started | — |
 | exp004 | What is net Sharpe as a function of round-trip latency and fee level? | not started | — |
 | exp005 | Under a known zero lag, how often do exp002's tests (curve asymmetry, peak lag) fire at nominal 5%? Decides which may enter BH. | **done** | both pass the pre-registered rule; asymmetry only narrowly. `outputs/exp005/` |
+| exp006 | Are exp002's tests calibrated under a null with correlation *and* tick-signed bid-ask bounce? | **done** | both fail the pre-registered rule; the null itself is not yet validated. `outputs/exp006/` |
 
 ## What we have learned
 
@@ -184,6 +185,18 @@ place, rather than requiring every estimator to handle degenerate intervals.
   bid-ask bounce would need to show up in the cross-curve. So the per-symbol
   pattern (ADA "leads" all, AVAX trails all) is still unexplained, not
   ruled out as an artefact.
+- **With correlation and bounce together, both tests fire far above 5%, and
+  by the pre-registered rule neither may enter BH.** exp006, true lag zero:
+  asymmetry 64/112 = 57.1% [47.9, 65.9], peak lag 32/112 = 28.6% [21.0, 37.5].
+  No symbol was on one side of leadership in 6+ of 7 pairs, so criterion 2
+  never triggered; criterion 1 alone excludes both. Read literally, exp002
+  yields no finding. But a 57% false-positive rate from a half-tick bounce is
+  large enough that the null may itself be wrong (tick-rule signs persist for
+  long runs and are not tied to the latent path), so this result is a
+  hypothesis about the estimator's failure, not yet a measurement of it.
+  Unchecked: the same run with the bounce set to zero must reproduce
+  exp005's latent rate (~9.5% asymmetry); if it does not, the fault is in the
+  new code, not the estimator.
 - **The peak lags, by contrast, look like the hypothesis.** Ordered by
   trading activity (ETH, BTC, SOL, XRP, DOGE, ADA, AVAX, LINK), ETH, BTC and
   SOL lead the five smaller symbols by 4.5–13.5 ms with bootstrap intervals
@@ -289,8 +302,12 @@ per-symbol artefact the null can reproduce is not evidence about information
 flow. A statistic must also have passed exp005, so it is held to all three nulls.
 If both statistics are excluded, that is reported and exp002 yields no finding.
 
-Next: implement and run exp006, then apply the exp002 rule above to the
-existing output.
+Next: validate exp006's null before believing it. Run it with
+`half_spread_fraction: 0` as a diagnostic (not a re-tune of the rule): it must
+reproduce exp005's latent rates. If it does, the finding is that
+Hayashi-Yoshida's asymmetry and peak-lag tests are unusable on real
+microstructure, and the next question is a bounce-robust estimator (e.g.
+pre-averaging or a minimum-interval filter) rather than exp002 conclusions.
 
 ## Claims → evidence
 
