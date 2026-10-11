@@ -1,0 +1,47 @@
+# Parameters only. Anything that branches or computes belongs in Python.
+seed: 0
+
+# Universe, days, grid and bootstrap: identical to configs/exp002.yaml, because
+# the point is to calibrate exactly the test exp002 ran. Same as exp005.
+symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - SOLUSDT
+  - XRPUSDT
+  - ADAUSDT
+  - DOGEUSDT
+  - AVAXUSDT
+  - LINKUSDT
+
+dates:
+  start: 2026-03-02
+  count: 10
+  stride_days: 6
+
+canonical_dir: data/canonical
+
+lag_grid:
+  step_ns: 1000000       # 1 ms
+  half_width: 50
+  tie_offset_ns: 500000  # 0.5 ms
+
+bootstrap:
+  block_s: 300
+  n_draws: 2000
+
+# Nominal size of each per-pair test, before any multiple-testing correction.
+nominal_alpha: 0.05
+
+# Pre-registered in PROJECT.md: a symbol on the same side of leadership in at
+# least this many of its 7 pairs, among significant calls, reproduces the
+# exp002 ADA/AVAX pattern.
+cluster_min_pairs: 6
+
+# Latent null (as exp005) plus a bid-ask bounce on every trade: +/- h in log
+# price, signed by the tick rule. h = half_spread_fraction x the median absolute
+# non-zero log price change of that symbol-day. Not to be tuned after seeing results.
+null:
+  replicates: 4
+  volatility_per_sqrt_s: 1.0e-4
+  noise: 1.0e-5
+  half_spread_fraction: 0.5
