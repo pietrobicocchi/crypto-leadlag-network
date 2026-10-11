@@ -257,11 +257,20 @@ Calibrated (exp005): both statistics pass the pre-registered rule; curve
 asymmetry only narrowly, at twice its nominal false-positive rate under the
 latent null.
 
-Next: undecided — whether exp002's conclusion should rest on asymmetry (which
-passed, narrowly), on peak lag (better calibrated, but switching now is
-choosing after seeing), or on both with the disagreement reported. And
-whether the per-symbol asymmetry pattern needs a third null that keeps
-microstructure and correlation together.
+**Decision rule for exp002, fixed before re-analysis.** The conclusion rests on
+both statistics, not either alone. A pair is a *finding* only if (a) its curve
+asymmetry passes BH at 5% over the 28 tests, (b) its peak-lag 95% bootstrap
+interval excludes zero, and (c) the two agree on sign of leadership. A pair
+passing exactly one is reported as *disputed*, with both values shown, never
+dropped or promoted. Peak lag is not substituted for asymmetry because it gives
+the expected picture; asymmetry's anti-conservatism (9.5% under the latent null)
+is handled by requiring peak-lag agreement, not by changing its threshold. The
+rule is not to be edited after seeing how many pairs it yields.
+
+Next: whether the per-symbol asymmetry pattern (ADA "leads" all, AVAX trails
+all) needs a third null that keeps microstructure and correlation together
+(exp006, rule to be fixed before running). Then apply the rule above to
+exp002's existing output.
 
 ## Claims → evidence
 
