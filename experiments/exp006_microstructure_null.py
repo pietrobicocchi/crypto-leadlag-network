@@ -21,12 +21,14 @@ Tests within one replicate share symbols, so they are not independent; the
 Wilson intervals are somewhat narrower than they should be.
 
     make exp EXP=exp006
+    uv run python experiments/exp006_microstructure_null.py exp006_zero_bounce
 """
 
 from __future__ import annotations
 
 import csv
 import itertools
+import sys
 from collections import defaultdict
 
 import numpy as np
@@ -52,8 +54,11 @@ from leadlag.types import TradeSeries
 
 
 def main() -> None:
-    config = load_config("exp006")
-    out = start_run("exp006", config)
+    # An optional config name lets a diagnostic variant (e.g. exp006_zero_bounce)
+    # reuse this code and write to its own outputs/ directory.
+    name = sys.argv[1] if len(sys.argv) > 1 else "exp006"
+    config = load_config(name)
+    out = start_run(name, config)
 
     lag_grid_ns = _lag_grid(config["lag_grid"])
     block_ns = int(config["bootstrap"]["block_s"]) * NS_PER_S
