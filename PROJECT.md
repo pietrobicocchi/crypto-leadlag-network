@@ -267,10 +267,30 @@ the expected picture; asymmetry's anti-conservatism (9.5% under the latent null)
 is handled by requiring peak-lag agreement, not by changing its threshold. The
 rule is not to be edited after seeing how many pairs it yields.
 
-Next: whether the per-symbol asymmetry pattern (ADA "leads" all, AVAX trails
-all) needs a third null that keeps microstructure and correlation together
-(exp006, rule to be fixed before running). Then apply the rule above to
-exp002's existing output.
+**exp006: a third null, rule fixed before it is run.** exp005's nulls each drop
+something exp002's data has: the shift null keeps microstructure but destroys
+correlation; the latent null keeps correlation but has no microstructure. exp006
+is the latent null (real clocks, one shared random walk, true lag exactly zero)
+plus a bid-ask bounce on every trade: ±h in log price, signed by the tick rule
+(the sign of the last non-zero price change in that symbol's real series,
+carried forward through zeros). The canonical cache has no `is_buyer_maker`, so
+the tick rule is the only direction available; it keeps the real clustering of
+trade signs, which a random sign would not. h is half the median absolute
+non-zero log price change of that symbol-day, an approximation to half the
+spread, not a measurement of it, and it is not to be tuned afterwards. 4
+replicates, exp002's days, grid, blocks and bootstrap.
+
+A statistic is excluded from exp002's BH step if, under this null, **either**
+(1) the 95% Wilson interval of its false-positive rate at nominal 5% lies
+entirely above 5%, **or** (2) in any replicate, some symbol is on the same
+side of leadership in at least 6 of its 7 pairs among that statistic's
+significant calls (p < 0.05). Criterion 2 is exp002's ADA/AVAX pattern: a
+per-symbol artefact the null can reproduce is not evidence about information
+flow. A statistic must also have passed exp005, so it is held to all three nulls.
+If both statistics are excluded, that is reported and exp002 yields no finding.
+
+Next: implement and run exp006, then apply the exp002 rule above to the
+existing output.
 
 ## Claims → evidence
 
