@@ -191,12 +191,17 @@ place, rather than requiring every estimator to handle degenerate intervals.
   No symbol was on one side of leadership in 6+ of 7 pairs, so criterion 2
   never triggered; criterion 1 alone excludes both. Read literally, exp002
   yields no finding. But a 57% false-positive rate from a half-tick bounce is
-  large enough that the null may itself be wrong (tick-rule signs persist for
-  long runs and are not tied to the latent path), so this result is a
-  hypothesis about the estimator's failure, not yet a measurement of it.
-  Unchecked: the same run with the bounce set to zero must reproduce
-  exp005's latent rate (~9.5% asymmetry); if it does not, the fault is in the
-  new code, not the estimator.
+  large enough to doubt the null, so it was checked: the same code with the
+  bounce switched off (2 replicates, 56 tests, a diagnostic, not a re-tune)
+  gives asymmetry 19.6% [11.3, 31.8] and peak lag 5.4% [1.8, 14.6]. That is
+  consistent with exp005's latent null (9.5% and 2.4%; asymmetry's intervals
+  overlap but its point estimate is higher, within what 56 correlated tests
+  allow), so the code is not what breaks the tests. The bounce is: it takes
+  asymmetry from ~20% to 57% and peak lag from ~5% to 29%. What remains
+  unproven is that the tick-signed bounce is a realistic model of real
+  microstructure (its signs persist in long runs and are independent of the
+  latent path), so "HY's tests are unusable on real data" is not yet shown, only
+  "unusable under this bounce".
 - **The peak lags, by contrast, look like the hypothesis.** Ordered by
   trading activity (ETH, BTC, SOL, XRP, DOGE, ADA, AVAX, LINK), ETH, BTC and
   SOL lead the five smaller symbols by 4.5–13.5 ms with bootstrap intervals
@@ -302,12 +307,11 @@ per-symbol artefact the null can reproduce is not evidence about information
 flow. A statistic must also have passed exp005, so it is held to all three nulls.
 If both statistics are excluded, that is reported and exp002 yields no finding.
 
-Next: validate exp006's null before believing it. Run it with
-`half_spread_fraction: 0` as a diagnostic (not a re-tune of the rule): it must
-reproduce exp005's latent rates. If it does, the finding is that
-Hayashi-Yoshida's asymmetry and peak-lag tests are unusable on real
-microstructure, and the next question is a bounce-robust estimator (e.g.
-pre-averaging or a minimum-interval filter) rather than exp002 conclusions.
+Next: decide what to do about the bounce. exp006 shows Hayashi-Yoshida's
+asymmetry and peak-lag tests fail under a persistent tick-signed bounce.
+Options: a bounce-robust estimator (pre-averaged returns, or dropping
+returns smaller than one tick) checked against this same null; or first make
+the null more realistic. Until one of these is done exp002 yields no finding.
 
 ## Claims → evidence
 
