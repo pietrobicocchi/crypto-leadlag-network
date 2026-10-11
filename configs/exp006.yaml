@@ -40,7 +40,7 @@ cluster_min_pairs: 6
 # Latent null (as exp005) plus a bid-ask bounce on every trade: +/- h in log
 # price, signed by the tick rule. h = half_spread_fraction x the median absolute
 # non-zero log price change of that symbol-day. Not to be tuned after seeing results.
-null:
+latent_bounce:
   replicates: 4
   volatility_per_sqrt_s: 1.0e-4
   noise: 1.0e-5

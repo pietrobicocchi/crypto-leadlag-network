@@ -60,7 +60,7 @@ def main() -> None:
     n_draws = int(config["bootstrap"]["n_draws"])
     alpha = float(config["nominal_alpha"])
     cluster_min = int(config["cluster_min_pairs"])
-    params = config["null"]
+    params = config["latent_bounce"]
     dates = _dates(config["dates"])
     symbols = sorted(config["symbols"])
     pairs = list(itertools.combinations(symbols, 2))
